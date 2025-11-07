@@ -227,6 +227,74 @@
             cursor: pointer;
         }
 
+        #model-picker-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .popup-content {
+            background: #2a2a2a;
+            border: 1px solid #4a4a4a;
+            border-radius: 8px;
+            padding: 20px;
+            min-width: 300px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .popup-content h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #e0e0e0;
+        }
+
+        #model-checkboxes {
+            margin-bottom: 15px;
+        }
+
+        #model-checkboxes label {
+            display: block;
+            padding: 8px;
+            margin-bottom: 5px;
+            background: #3a3a3a;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #model-checkboxes label:hover {
+            background: #4a4a4a;
+        }
+
+        #model-checkboxes input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        .mode-selector {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #3a3a3a;
+            border-radius: 4px;
+        }
+
+        .mode-selector label {
+            display: inline-block;
+            margin-right: 15px;
+            color: #e0e0e0;
+        }
+
+        .mode-selector input[type="radio"] {
+            margin-right: 5px;
+        }
+
         .settings-container, .prompts-container, .history-container {
             padding: 20px;
             overflow-y: auto;
@@ -348,8 +416,21 @@
                 <input type="file" id="file-input" multiple accept="*/*">
                 <button class="file-upload-btn" onclick="document.getElementById('file-input').click()">📎</button>
                 <textarea id="message-input" placeholder="Type a message... (Click Send button to send)"></textarea>
-                <select class="model-select" id="model-select"></select>
+                <button class="model-select" id="model-picker-btn">Select Models</button>
                 <button id="send-btn">Send</button>
+            </div>
+            <div id="model-picker-popup" style="display: none;">
+                <div class="popup-content">
+                    <h3>Select Models</h3>
+                    <div id="model-checkboxes"></div>
+                    <div class="mode-selector">
+                        <label>Mode:</label>
+                        <label><input type="radio" name="model-mode" value="parallel" checked> Parallel</label>
+                        <label><input type="radio" name="model-mode" value="serial"> Serial</label>
+                        <label><input type="radio" name="model-mode" value="rotating"> Rotating</label>
+                    </div>
+                    <button onclick="closeModelPicker()">Done</button>
+                </div>
             </div>
         </div>
     </div>
@@ -435,6 +516,9 @@
         let attachedFiles = [];
         let editingMessageIndex = null;
         let isStreaming = false;
+        let selectedModelIndices = [];
+        let multiModelMode = 'parallel';
+        let rotationIndex = 0;
 
         // Initialize
         function init() {
@@ -487,6 +571,18 @@
                     console.error('Error loading conversation:', e);
                 }
             }
+
+            const storedSelectedModels = localStorage.getItem('selectedModelIndices');
+            if (storedSelectedModels) {
+                try {
+                    selectedModelIndices = JSON.parse(storedSelectedModels);
+                } catch (e) {
+                    console.error('Error loading selected models:', e);
+                }
+            }
+
+            multiModelMode = localStorage.getItem('multiModelMode') || 'parallel';
+            rotationIndex = parseInt(localStorage.getItem('rotationIndex') || '0');
         }
 
         function saveToStorage() {
@@ -495,6 +591,9 @@
             localStorage.setItem('systemPrompts', JSON.stringify(systemPrompts));
             localStorage.setItem('activePromptId', activePromptId || '');
             localStorage.setItem('currentConversation', JSON.stringify(currentConversation));
+            localStorage.setItem('selectedModelIndices', JSON.stringify(selectedModelIndices));
+            localStorage.setItem('multiModelMode', multiModelMode);
+            localStorage.setItem('rotationIndex', rotationIndex.toString());
         }
 
         function setupEventListeners() {
@@ -512,6 +611,24 @@
             // File upload
             document.getElementById('file-input').addEventListener('change', handleFileUpload);
 
+            // Model picker button
+            document.getElementById('model-picker-btn').addEventListener('click', openModelPicker);
+
+            // Model picker popup - click outside to close
+            document.getElementById('model-picker-popup').addEventListener('click', (e) => {
+                if (e.target.id === 'model-picker-popup') {
+                    closeModelPicker();
+                }
+            });
+
+            // Model mode radio buttons
+            document.querySelectorAll('input[name="model-mode"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    multiModelMode = e.target.value;
+                    saveToStorage();
+                });
+            });
+
             // Template selector - show template config
             document.getElementById('new-model-template').addEventListener('change', (e) => {
                 const template = e.target.value;
@@ -524,8 +641,7 @@
                     : `"api_key": "your-api-key-here"  // Or add an API key in the API Keys tab`;
 
                 const templates = {
-                    anthropic: `{
-  "template": "anthropic",
+                    anthropic: `"template": "anthropic",
   "endpoint": "https://api.anthropic.com/v1/messages",
   "model_id": "claude-3-5-sonnet-20241022",
   ${apiKeyRef},
@@ -545,9 +661,8 @@
 
   // Beta features (extended thinking, prompt caching, etc.)
   "beta_headers": []  // ["prompt-caching-2024-07-31", "max-tokens-3-5-sonnet-2024-07-15"]
-}`,
-                    openai: `{
-  "template": "openai",
+`,
+                    openai: `"template": "openai",
   "endpoint": "https://api.openai.com/v1/chat/completions",
   "model_id": "gpt-4-turbo",
   ${apiKeyRef},
@@ -575,9 +690,8 @@
 
   // Custom headers
   "headers": {}  // {"X-Custom-Header": "value"}
-}`,
-                    google: `{
-  "template": "google",
+`,
+                    google: `"template": "google",
   "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:streamGenerateContent",
   "model_id": "gemini-1.5-pro",
   ${apiKeyRef},
@@ -599,9 +713,8 @@
 
   // Custom headers
   "headers": {}  // {"X-Custom-Header": "value"}
-}`,
-                    xai: `{
-  "template": "xai",
+`,
+                    xai: `"template": "xai",
   "endpoint": "https://api.x.ai/v1/chat/completions",
   "model_id": "grok-beta",
   ${apiKeyRef},
@@ -629,9 +742,8 @@
 
   // Custom headers
   "headers": {}  // {"X-Custom-Header": "value"}
-}`,
-                    openrouter: `{
-  "template": "openrouter",
+`,
+                    openrouter: `"template": "openrouter",
   "endpoint": "https://openrouter.ai/api/v1/chat/completions",
   "model_id": "anthropic/claude-3.5-sonnet",
   ${apiKeyRef},
@@ -665,7 +777,7 @@
 
   // Custom headers
   "headers": {}  // {"HTTP-Referer": "https://yoursite.com", "X-Title": "Your App"}
-}`
+`
                 };
 
                 configTextarea.value = templates[template] || '';
@@ -687,23 +799,63 @@
         }
 
         function updateModelSelect() {
-            const select = document.getElementById('model-select');
-            select.innerHTML = '';
+            updateModelPickerButton();
+        }
+
+        function updateModelPickerButton() {
+            const btn = document.getElementById('model-picker-btn');
+            if (selectedModelIndices.length === 0) {
+                btn.textContent = 'Select Models';
+            } else if (selectedModelIndices.length === 1) {
+                btn.textContent = models[selectedModelIndices[0]]?.name || 'Select Models';
+            } else {
+                btn.textContent = `${selectedModelIndices.length} Models (${multiModelMode})`;
+            }
+        }
+
+        function openModelPicker() {
+            const popup = document.getElementById('model-picker-popup');
+            const checkboxesContainer = document.getElementById('model-checkboxes');
+
+            checkboxesContainer.innerHTML = '';
 
             if (models.length === 0) {
-                const option = document.createElement('option');
-                option.textContent = 'No models configured';
-                option.disabled = true;
-                select.appendChild(option);
-                return;
+                checkboxesContainer.innerHTML = '<p style="color: #888;">No models configured. Add models in Settings.</p>';
+            } else {
+                models.forEach((model, index) => {
+                    const label = document.createElement('label');
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = index;
+                    checkbox.checked = selectedModelIndices.includes(index);
+                    checkbox.addEventListener('change', (e) => {
+                        if (e.target.checked) {
+                            if (!selectedModelIndices.includes(index)) {
+                                selectedModelIndices.push(index);
+                            }
+                        } else {
+                            selectedModelIndices = selectedModelIndices.filter(i => i !== index);
+                        }
+                        saveToStorage();
+                        updateModelPickerButton();
+                    });
+
+                    label.appendChild(checkbox);
+                    label.appendChild(document.createTextNode(model.name));
+                    checkboxesContainer.appendChild(label);
+                });
             }
 
-            models.forEach((model, index) => {
-                const option = document.createElement('option');
-                option.value = `model:${index}`;
-                option.textContent = model.name;
-                select.appendChild(option);
+            // Set the current mode
+            document.querySelectorAll('input[name="model-mode"]').forEach(radio => {
+                radio.checked = (radio.value === multiModelMode);
             });
+
+            popup.style.display = 'flex';
+        }
+
+        function closeModelPicker() {
+            document.getElementById('model-picker-popup').style.display = 'none';
         }
 
         function updatePromptsSelect() {
@@ -861,11 +1013,29 @@
             }
 
             try {
-                const config = JSON.parse(configText);
+                // Strip inline comments (// ...) from JSON
+                const cleanedConfig = configText
+                    .split('\n')
+                    .map(line => {
+                        // Remove inline comments after values
+                        const commentIndex = line.indexOf('//');
+                        if (commentIndex !== -1) {
+                            return line.substring(0, commentIndex).trimEnd();
+                        }
+                        return line;
+                    })
+                    .join('\n');
+
+                // Wrap in {} if not already wrapped
+                const jsonText = cleanedConfig.trim().startsWith('{')
+                    ? cleanedConfig
+                    : `{${cleanedConfig}}`;
+
+                const config = JSON.parse(jsonText);
 
                 // Validate required fields
-                if (!config.template || !config.endpoint || !config.model_id || !config.api_key) {
-                    alert('Configuration must include: template, endpoint, model_id, and api_key');
+                if (!config.template || !config.endpoint || !config.model_id || (!config.api_key && !config.api_key_id)) {
+                    alert('Configuration must include: template, endpoint, model_id, and api_key (or api_key_id)');
                     return;
                 }
 
@@ -893,6 +1063,12 @@
         function deleteModel(index) {
             if (!confirm('Delete this model?')) return;
             models.splice(index, 1);
+
+            // Update selectedModelIndices to remove this index and adjust higher indices
+            selectedModelIndices = selectedModelIndices
+                .filter(i => i !== index)
+                .map(i => i > index ? i - 1 : i);
+
             saveToStorage();
             updateModelSelect();
             updateModelsList();
@@ -990,18 +1166,15 @@
 
             const input = document.getElementById('message-input');
             const messageText = input.value.trim();
-            
+
             if (!messageText && attachedFiles.length === 0) return;
             if (models.length === 0) {
                 alert('Please configure at least one model in Settings');
                 return;
             }
 
-            const selectValue = document.getElementById('model-select').value;
-            const [type, index] = selectValue.split(':');
-
-            if (!selectValue) {
-                alert('Please select a model');
+            if (selectedModelIndices.length === 0) {
+                alert('Please select at least one model');
                 return;
             }
 
@@ -1032,15 +1205,13 @@
             document.getElementById('send-btn').disabled = true;
 
             try {
-                const model = models[parseInt(index)];
-                const assistantMessage = {
-                    role: 'assistant',
-                    content: '',
-                    thinking: '',
-                    timestamp: Date.now()
-                };
-                currentConversation.push(assistantMessage);
-                await streamResponse(model, assistantMessage);
+                if (multiModelMode === 'parallel') {
+                    await handleParallelMode();
+                } else if (multiModelMode === 'serial') {
+                    await handleSerialMode();
+                } else if (multiModelMode === 'rotating') {
+                    await handleRotatingMode();
+                }
             } catch (error) {
                 console.error('Error:', error);
                 const errorMessage = {
@@ -1054,6 +1225,73 @@
 
             isStreaming = false;
             document.getElementById('send-btn').disabled = false;
+            saveToStorage();
+        }
+
+        async function handleParallelMode() {
+            // All models answer independently in parallel
+            const promises = selectedModelIndices.map(async (modelIndex) => {
+                const model = models[modelIndex];
+                const assistantMessage = {
+                    role: 'assistant',
+                    content: '',
+                    thinking: '',
+                    modelName: model.name,
+                    timestamp: Date.now()
+                };
+                currentConversation.push(assistantMessage);
+                renderConversation();
+                await streamResponse(model, assistantMessage);
+            });
+
+            await Promise.all(promises);
+        }
+
+        async function handleSerialMode() {
+            // Models answer sequentially, each seeing previous responses
+            for (let i = 0; i < selectedModelIndices.length; i++) {
+                const modelIndex = selectedModelIndices[i];
+                const model = models[modelIndex];
+                const assistantMessage = {
+                    role: 'assistant',
+                    content: '',
+                    thinking: '',
+                    modelName: model.name,
+                    timestamp: Date.now()
+                };
+                currentConversation.push(assistantMessage);
+                renderConversation();
+                await streamResponse(model, assistantMessage);
+            }
+        }
+
+        async function handleRotatingMode() {
+            // Serial mode with rotating order
+            const orderedIndices = [...selectedModelIndices];
+
+            // Rotate based on rotationIndex
+            for (let i = 0; i < rotationIndex % orderedIndices.length; i++) {
+                orderedIndices.push(orderedIndices.shift());
+            }
+
+            // Process in rotated order
+            for (let i = 0; i < orderedIndices.length; i++) {
+                const modelIndex = orderedIndices[i];
+                const model = models[modelIndex];
+                const assistantMessage = {
+                    role: 'assistant',
+                    content: '',
+                    thinking: '',
+                    modelName: model.name,
+                    timestamp: Date.now()
+                };
+                currentConversation.push(assistantMessage);
+                renderConversation();
+                await streamResponse(model, assistantMessage);
+            }
+
+            // Increment rotation for next time
+            rotationIndex++;
             saveToStorage();
         }
 
@@ -1872,7 +2110,15 @@
                     const div = document.createElement('div');
                     div.className = 'message assistant';
                     const rendered = renderMarkdownWithLatex(msg.content);
-                    div.innerHTML = `<div class="message-content">${rendered}</div>`;
+                    let contentHtml = '';
+
+                    // Show model name if multiple models are selected
+                    if (msg.modelName && selectedModelIndices.length > 1) {
+                        contentHtml += `<div style="font-size: 12px; color: #888; margin-bottom: 8px; font-weight: 600;">${escapeHtml(msg.modelName)}</div>`;
+                    }
+
+                    contentHtml += `<div class="message-content">${rendered}</div>`;
+                    div.innerHTML = contentHtml;
                     container.appendChild(div);
                 }
             });
