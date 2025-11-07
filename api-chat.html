@@ -395,6 +395,8 @@
                     <option value="anthropic">Anthropic</option>
                     <option value="openai">OpenAI</option>
                     <option value="google">Google</option>
+                    <option value="xai">xAI</option>
+                    <option value="openrouter">OpenRouter</option>
                 </select>
                 <input type="password" id="new-key-value" placeholder="API key" style="margin-bottom: 8px;">
                 <button class="primary" onclick="addApiKey()">Add API Key</button>
@@ -416,6 +418,8 @@
                     <option value="anthropic">Anthropic (Claude)</option>
                     <option value="openai">OpenAI (GPT)</option>
                     <option value="google">Google (Gemini)</option>
+                    <option value="xai">xAI (Grok)</option>
+                    <option value="openrouter">OpenRouter</option>
                 </select>
                 <textarea id="new-model-config" placeholder="Model configuration will appear here when you select a template..." style="min-height: 250px;"></textarea>
                 <button class="primary" onclick="addModel()">Add Model</button>
@@ -607,6 +611,72 @@
 
   // Custom headers
   "headers": {}  // {"X-Custom-Header": "value"}
+}`,
+                    xai: `{
+  "template": "xai",
+  "endpoint": "https://api.x.ai/v1/chat/completions",
+  "model_id": "grok-beta",
+  ${apiKeyRef},
+
+  // Sampling parameters
+  "max_tokens": null,  // Max tokens to generate
+  "temperature": 1.0,  // 0.0-2.0, higher = more random
+  "top_p": 1.0,  // 0.0-1.0, nucleus sampling
+  "frequency_penalty": 0,  // -2.0 to 2.0, penalize frequent tokens
+  "presence_penalty": 0,  // -2.0 to 2.0, penalize tokens that appeared
+  "stop": null,  // String or array of strings to stop at
+
+  // Response options
+  "n": 1,  // Number of completions to generate
+  "stream_options": null,  // {"include_usage": true}
+  "response_format": null,  // {"type": "json_object"} for JSON mode
+  "seed": null,  // Integer for deterministic sampling
+  "logprobs": null,  // Return log probabilities
+  "top_logprobs": null,  // Number of most likely tokens to return (0-20)
+  "user": null,  // Unique identifier for end-user
+
+  // Function calling
+  "tools": null,  // [{"type": "function", "function": {...}}]
+  "tool_choice": null,  // "none", "auto", or {"type": "function", "function": {"name": "..."}}
+
+  // Custom headers
+  "headers": {}  // {"X-Custom-Header": "value"}
+}`,
+                    openrouter: `{
+  "template": "openrouter",
+  "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+  "model_id": "anthropic/claude-3.5-sonnet",
+  ${apiKeyRef},
+
+  // Sampling parameters
+  "max_tokens": null,  // Max tokens to generate
+  "temperature": 1.0,  // 0.0-2.0, higher = more random
+  "top_p": 1.0,  // 0.0-1.0, nucleus sampling
+  "frequency_penalty": 0,  // -2.0 to 2.0, penalize frequent tokens
+  "presence_penalty": 0,  // -2.0 to 2.0, penalize tokens that appeared
+  "stop": null,  // String or array of strings to stop at
+
+  // Response options
+  "n": 1,  // Number of completions to generate
+  "stream_options": null,  // {"include_usage": true}
+  "response_format": null,  // {"type": "json_object"} for JSON mode
+  "seed": null,  // Integer for deterministic sampling
+  "logprobs": null,  // Return log probabilities
+  "top_logprobs": null,  // Number of most likely tokens to return (0-20)
+  "user": null,  // Unique identifier for end-user
+
+  // Function calling
+  "tools": null,  // [{"type": "function", "function": {...}}]
+  "tool_choice": null,  // "none", "auto", or {"type": "function", "function": {"name": "..."}}
+
+  // OpenRouter-specific options
+  "transforms": null,  // ["middle-out"] for compression
+  "models": null,  // ["anthropic/claude-3.5-sonnet", "openai/gpt-4"] for fallbacks
+  "route": null,  // "fallback" routing strategy
+  "provider": null,  // {"order": ["Fireworks"], "allow_fallbacks": false}
+
+  // Custom headers
+  "headers": {}  // {"HTTP-Referer": "https://yoursite.com", "X-Title": "Your App"}
 }`
                 };
 
@@ -1021,6 +1091,10 @@
                 await streamOpenAI(model, messages, assistantMessage);
             } else if (model.template === 'google') {
                 await streamGoogle(model, messages, assistantMessage);
+            } else if (model.template === 'xai') {
+                await streamXAI(model, messages, assistantMessage);
+            } else if (model.template === 'openrouter') {
+                await streamOpenRouter(model, messages, assistantMessage);
             } else {
                 await streamCustom(model, messages, assistantMessage);
             }
@@ -1317,6 +1391,284 @@
                         const data = line.slice(6);
                         if (data === '[DONE]') continue;
                         
+                        try {
+                            const parsed = JSON.parse(data);
+                            const delta = parsed.choices?.[0]?.delta?.content;
+                            if (delta) {
+                                assistantMessage.content += delta;
+                                renderConversation();
+                            }
+                        } catch (e) {
+                            console.error('Error parsing SSE:', e, 'Line:', line);
+                        }
+                    }
+                }
+            }
+        }
+
+        async function streamXAI(model, messages, assistantMessage) {
+            // xAI uses OpenAI-compatible API
+            const body = {
+                model: model.model_id,
+                messages: messages,
+                stream: true
+            };
+
+            // Add optional parameters if specified
+            if (model.max_tokens !== undefined && model.max_tokens !== null) {
+                body.max_tokens = model.max_tokens;
+            }
+            if (model.temperature !== undefined && model.temperature !== null) {
+                body.temperature = model.temperature;
+            }
+            if (model.top_p !== undefined && model.top_p !== null) {
+                body.top_p = model.top_p;
+            }
+            if (model.frequency_penalty !== undefined && model.frequency_penalty !== null) {
+                body.frequency_penalty = model.frequency_penalty;
+            }
+            if (model.presence_penalty !== undefined && model.presence_penalty !== null) {
+                body.presence_penalty = model.presence_penalty;
+            }
+            if (model.stop && model.stop.length > 0) {
+                body.stop = model.stop;
+            }
+            if (model.n !== undefined && model.n !== null) {
+                body.n = model.n;
+            }
+            if (model.stream_options) {
+                body.stream_options = model.stream_options;
+            }
+            if (model.response_format) {
+                body.response_format = model.response_format;
+            }
+            if (model.seed !== undefined && model.seed !== null) {
+                body.seed = model.seed;
+            }
+            if (model.logprobs !== undefined && model.logprobs !== null) {
+                body.logprobs = model.logprobs;
+            }
+            if (model.top_logprobs !== undefined && model.top_logprobs !== null) {
+                body.top_logprobs = model.top_logprobs;
+            }
+            if (model.user) {
+                body.user = model.user;
+            }
+            if (model.tools) {
+                body.tools = model.tools;
+            }
+            if (model.tool_choice) {
+                body.tool_choice = model.tool_choice;
+            }
+
+            if (activePromptId) {
+                const prompt = systemPrompts.find(p => p.id === activePromptId);
+                if (prompt) {
+                    body.messages.unshift({ role: 'system', content: prompt.content });
+                }
+            }
+
+            console.log('xAI request:', { endpoint: model.endpoint, body });
+
+            const apiKey = resolveApiKey(model);
+
+            // Build headers
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            };
+
+            // Add custom headers
+            if (model.headers) {
+                Object.assign(headers, model.headers);
+            }
+
+            let response;
+            try {
+                response = await fetch(model.endpoint, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(body)
+                });
+            } catch (e) {
+                console.error('Fetch error:', e);
+                throw new Error(`Network error: ${e.message}. Check your internet connection and API endpoint.`);
+            }
+
+            if (!response.ok) {
+                let errorText;
+                try {
+                    errorText = await response.text();
+                    console.error('API error response:', errorText);
+                } catch (e) {
+                    errorText = 'Could not read error response';
+                }
+                throw new Error(`API error ${response.status}: ${errorText}`);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop();
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        if (data === '[DONE]') continue;
+
+                        try {
+                            const parsed = JSON.parse(data);
+                            const delta = parsed.choices?.[0]?.delta?.content;
+                            if (delta) {
+                                assistantMessage.content += delta;
+                                renderConversation();
+                            }
+                        } catch (e) {
+                            console.error('Error parsing SSE:', e, 'Line:', line);
+                        }
+                    }
+                }
+            }
+        }
+
+        async function streamOpenRouter(model, messages, assistantMessage) {
+            // OpenRouter uses OpenAI-compatible API with additional options
+            const body = {
+                model: model.model_id,
+                messages: messages,
+                stream: true
+            };
+
+            // Add optional parameters if specified
+            if (model.max_tokens !== undefined && model.max_tokens !== null) {
+                body.max_tokens = model.max_tokens;
+            }
+            if (model.temperature !== undefined && model.temperature !== null) {
+                body.temperature = model.temperature;
+            }
+            if (model.top_p !== undefined && model.top_p !== null) {
+                body.top_p = model.top_p;
+            }
+            if (model.frequency_penalty !== undefined && model.frequency_penalty !== null) {
+                body.frequency_penalty = model.frequency_penalty;
+            }
+            if (model.presence_penalty !== undefined && model.presence_penalty !== null) {
+                body.presence_penalty = model.presence_penalty;
+            }
+            if (model.stop && model.stop.length > 0) {
+                body.stop = model.stop;
+            }
+            if (model.n !== undefined && model.n !== null) {
+                body.n = model.n;
+            }
+            if (model.stream_options) {
+                body.stream_options = model.stream_options;
+            }
+            if (model.response_format) {
+                body.response_format = model.response_format;
+            }
+            if (model.seed !== undefined && model.seed !== null) {
+                body.seed = model.seed;
+            }
+            if (model.logprobs !== undefined && model.logprobs !== null) {
+                body.logprobs = model.logprobs;
+            }
+            if (model.top_logprobs !== undefined && model.top_logprobs !== null) {
+                body.top_logprobs = model.top_logprobs;
+            }
+            if (model.user) {
+                body.user = model.user;
+            }
+            if (model.tools) {
+                body.tools = model.tools;
+            }
+            if (model.tool_choice) {
+                body.tool_choice = model.tool_choice;
+            }
+
+            // OpenRouter-specific options
+            if (model.transforms) {
+                body.transforms = model.transforms;
+            }
+            if (model.models) {
+                body.models = model.models;
+            }
+            if (model.route) {
+                body.route = model.route;
+            }
+            if (model.provider) {
+                body.provider = model.provider;
+            }
+
+            if (activePromptId) {
+                const prompt = systemPrompts.find(p => p.id === activePromptId);
+                if (prompt) {
+                    body.messages.unshift({ role: 'system', content: prompt.content });
+                }
+            }
+
+            console.log('OpenRouter request:', { endpoint: model.endpoint, body });
+
+            const apiKey = resolveApiKey(model);
+
+            // Build headers
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            };
+
+            // Add custom headers (OpenRouter recommends HTTP-Referer and X-Title)
+            if (model.headers) {
+                Object.assign(headers, model.headers);
+            }
+
+            let response;
+            try {
+                response = await fetch(model.endpoint, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(body)
+                });
+            } catch (e) {
+                console.error('Fetch error:', e);
+                throw new Error(`Network error: ${e.message}. Check your internet connection and API endpoint.`);
+            }
+
+            if (!response.ok) {
+                let errorText;
+                try {
+                    errorText = await response.text();
+                    console.error('API error response:', errorText);
+                } catch (e) {
+                    errorText = 'Could not read error response';
+                }
+                throw new Error(`API error ${response.status}: ${errorText}`);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop();
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        if (data === '[DONE]') continue;
+
                         try {
                             const parsed = JSON.parse(data);
                             const delta = parsed.choices?.[0]?.delta?.content;
