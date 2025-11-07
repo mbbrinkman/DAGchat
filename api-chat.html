@@ -336,9 +336,7 @@
 <body>
     <div class="tabs">
         <button class="tab active" data-tab="chat">Chat</button>
-        <button class="tab" data-tab="prompts">System Prompts</button>
         <button class="tab" data-tab="history">History</button>
-        <button class="tab" data-tab="api-keys">API Keys</button>
         <button class="tab" data-tab="settings">Settings</button>
     </div>
 
@@ -356,8 +354,18 @@
         </div>
     </div>
 
-    <div id="prompts-tab" class="tab-content">
-        <div class="prompts-container">
+    <div id="history-tab" class="tab-content">
+        <div class="history-container">
+            <div class="settings-section">
+                <h3>Conversation History</h3>
+                <button class="primary" onclick="clearHistory()">Clear All History</button>
+            </div>
+            <div id="history-list"></div>
+        </div>
+    </div>
+
+    <div id="settings-tab" class="tab-content">
+        <div class="settings-container">
             <div class="settings-section">
                 <h3>Current System Prompt</h3>
                 <select id="active-prompt-select" style="margin-bottom: 12px;"></select>
@@ -372,21 +380,6 @@
                 <h3>Saved Prompts</h3>
                 <div id="prompts-list"></div>
             </div>
-        </div>
-    </div>
-
-    <div id="history-tab" class="tab-content">
-        <div class="history-container">
-            <div class="settings-section">
-                <h3>Conversation History</h3>
-                <button class="primary" onclick="clearHistory()">Clear All History</button>
-            </div>
-            <div id="history-list"></div>
-        </div>
-    </div>
-
-    <div id="api-keys-tab" class="tab-content">
-        <div class="settings-container">
             <div class="settings-section">
                 <h3>Add API Key</h3>
                 <input type="text" id="new-key-name" placeholder="Key name (e.g., My Anthropic Key, Work OpenAI)" style="margin-bottom: 8px;">
@@ -405,11 +398,6 @@
                 <h3>Saved API Keys</h3>
                 <div id="api-keys-list"></div>
             </div>
-        </div>
-    </div>
-
-    <div id="settings-tab" class="tab-content">
-        <div class="settings-container">
             <div class="settings-section">
                 <h3>Add New Model</h3>
                 <input type="text" id="new-model-name" placeholder="Model name (e.g., My Claude Model)" style="margin-bottom: 8px;">
@@ -693,8 +681,8 @@
 
             if (tabName === 'settings') {
                 updateModelsList();
-            } else if (tabName === 'api-keys') {
                 updateApiKeysList();
+                updatePromptsList();
             }
         }
 
