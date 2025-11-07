@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Chat</title>
+    <title>Multi-Model Chat</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
@@ -348,7 +348,7 @@
             <div class="input-row">
                 <input type="file" id="file-input" multiple accept="*/*">
                 <button class="file-upload-btn" onclick="document.getElementById('file-input').click()">📎</button>
-                <textarea id="message-input" placeholder="Type a message..."></textarea>
+                <textarea id="message-input" placeholder="Type a message... (Click Send button to send)"></textarea>
                 <select class="model-select" id="model-select"></select>
                 <button id="send-btn">Send</button>
             </div>
@@ -387,61 +387,55 @@
     <div id="settings-tab" class="tab-content">
         <div class="settings-container">
             <div class="settings-section">
-                <h3>Models Configuration</h3>
-                <p style="margin-bottom: 8px; color: #888; font-size: 13px;">JSON array of model configurations</p>
+                <h3>Add New Model</h3>
+                <input type="text" id="new-model-name" placeholder="Model name (e.g., Claude 3.5 Sonnet)" style="margin-bottom: 8px;">
+                <select id="new-model-template" style="margin-bottom: 8px;">
+                    <option value="anthropic">Anthropic (Claude)</option>
+                    <option value="openai">OpenAI (GPT)</option>
+                    <option value="google">Google (Gemini)</option>
+                </select>
+                <input type="text" id="new-model-endpoint" placeholder="API endpoint URL" style="margin-bottom: 8px;">
+                <input type="text" id="new-model-id" placeholder="Model ID" style="margin-bottom: 8px;">
+                <input type="password" id="new-model-key" placeholder="API key" style="margin-bottom: 8px;">
+                <input type="number" id="new-model-tokens" placeholder="Max tokens (optional, default: 8096)" style="margin-bottom: 8px;">
+                <button class="primary" onclick="addModel()">Add Model</button>
+            </div>
+            <div class="settings-section">
+                <h3>Saved Models</h3>
+                <div id="models-list"></div>
+            </div>
+            <div class="settings-section">
+                <h3>Advanced: JSON Configuration</h3>
+                <p style="margin-bottom: 8px; color: #888; font-size: 13px;">Edit models as JSON (for advanced users)</p>
                 <textarea id="models-config"></textarea>
-                <button class="primary" onclick="saveModelsConfig()">Save Models</button>
+                <button class="primary" onclick="saveModelsConfig()">Save JSON</button>
             </div>
             <div class="settings-section">
                 <h3>Example Configuration</h3>
-                <pre style="background: #2a2a2a; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px;">{
-  "models": [
-    {
-      "name": "Claude Sonnet 4.5",
-      "template": "anthropic",
-      "endpoint": "https://api.anthropic.com/v1/messages",
-      "model_id": "claude-sonnet-4-5-20250929",
-      "api_key": "your-api-key-here",
-      "max_tokens": 8096
-    },
-    {
-      "name": "GPT-4 Vision",
-      "template": "openai",
-      "endpoint": "https://api.openai.com/v1/chat/completions",
-      "model_id": "gpt-4-vision-preview",
-      "api_key": "your-api-key-here"
-    }
-  ],
-  "chains": [
-    {
-      "name": "Vision → Reasoning Chain",
-      "type": "chain",
-      "steps": [
-        {
-          "model_index": 1,
-          "system_prompt": "Describe this image in detail.",
-          "pass_files": true
-        },
-        {
-          "model_index": 0,
-          "system_prompt": "Based on the image description, answer the user's question.",
-          "pass_files": false
-        }
-      ]
-    },
-    {
-      "name": "Debate: Claude vs GPT",
-      "type": "debate",
-      "models": [0, 1],
-      "rounds": 3
-    },
-    {
-      "name": "Ask Both Models",
-      "type": "parallel",
-      "models": [0, 1]
-    }
-  ]
-}</pre>
+                <pre style="background: #2a2a2a; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px;">[
+  {
+    "name": "Claude 3.5 Sonnet",
+    "template": "anthropic",
+    "endpoint": "https://api.anthropic.com/v1/messages",
+    "model_id": "claude-3-5-sonnet-20241022",
+    "api_key": "sk-ant-your-api-key-here",
+    "max_tokens": 8096
+  },
+  {
+    "name": "GPT-4",
+    "template": "openai",
+    "endpoint": "https://api.openai.com/v1/chat/completions",
+    "model_id": "gpt-4-turbo",
+    "api_key": "sk-your-openai-key-here"
+  },
+  {
+    "name": "Gemini 1.5 Pro",
+    "template": "google",
+    "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:streamGenerateContent",
+    "model_id": "gemini-1.5-pro",
+    "api_key": "your-google-api-key-here"
+  }
+]</pre>
             </div>
             <div class="settings-section">
                 <h3>Export/Import Data</h3>
@@ -455,7 +449,6 @@
     <script>
         // State
         let models = [];
-        let chains = [];
         let systemPrompts = [];
         let activePromptId = null;
         let currentConversation = [];
@@ -468,6 +461,7 @@
             loadFromStorage();
             setupEventListeners();
             updateModelSelect();
+            updateModelsList();
             updatePromptsList();
             updatePromptsSelect();
             renderConversation();
@@ -481,15 +475,6 @@
                     models = JSON.parse(storedModels);
                 } catch (e) {
                     console.error('Error loading models:', e);
-                }
-            }
-
-            const storedChains = localStorage.getItem('chains');
-            if (storedChains) {
-                try {
-                    chains = JSON.parse(storedChains);
-                } catch (e) {
-                    console.error('Error loading chains:', e);
                 }
             }
 
@@ -516,7 +501,6 @@
 
         function saveToStorage() {
             localStorage.setItem('models', JSON.stringify(models));
-            localStorage.setItem('chains', JSON.stringify(chains));
             localStorage.setItem('systemPrompts', JSON.stringify(systemPrompts));
             localStorage.setItem('activePromptId', activePromptId || '');
             localStorage.setItem('currentConversation', JSON.stringify(currentConversation));
@@ -533,15 +517,27 @@
 
             // Send message
             document.getElementById('send-btn').addEventListener('click', sendMessage);
-            document.getElementById('message-input').addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            });
 
             // File upload
             document.getElementById('file-input').addEventListener('change', handleFileUpload);
+
+            // Template selector auto-fill
+            document.getElementById('new-model-template').addEventListener('change', (e) => {
+                const template = e.target.value;
+                const endpointInput = document.getElementById('new-model-endpoint');
+                const modelIdInput = document.getElementById('new-model-id');
+
+                if (template === 'anthropic') {
+                    endpointInput.value = 'https://api.anthropic.com/v1/messages';
+                    modelIdInput.placeholder = 'e.g., claude-3-5-sonnet-20241022';
+                } else if (template === 'openai') {
+                    endpointInput.value = 'https://api.openai.com/v1/chat/completions';
+                    modelIdInput.placeholder = 'e.g., gpt-4-turbo';
+                } else if (template === 'google') {
+                    endpointInput.value = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:streamGenerateContent';
+                    modelIdInput.placeholder = 'e.g., gemini-1.5-pro';
+                }
+            });
         }
 
         function switchTab(tabName) {
@@ -552,20 +548,16 @@
             document.getElementById(`${tabName}-tab`).classList.add('active');
 
             if (tabName === 'settings') {
-                // Show config in new format
-                const config = {
-                    models: models,
-                    chains: chains
-                };
-                document.getElementById('models-config').value = JSON.stringify(config, null, 2);
+                document.getElementById('models-config').value = JSON.stringify(models, null, 2);
+                updateModelsList();
             }
         }
 
         function updateModelSelect() {
             const select = document.getElementById('model-select');
             select.innerHTML = '';
-            
-            if (models.length === 0 && chains.length === 0) {
+
+            if (models.length === 0) {
                 const option = document.createElement('option');
                 option.textContent = 'No models configured';
                 option.disabled = true;
@@ -573,31 +565,12 @@
                 return;
             }
 
-            // Add individual models
-            if (models.length > 0) {
-                const optgroup = document.createElement('optgroup');
-                optgroup.label = 'Single Models';
-                models.forEach((model, index) => {
-                    const option = document.createElement('option');
-                    option.value = `model:${index}`;
-                    option.textContent = model.name;
-                    optgroup.appendChild(option);
-                });
-                select.appendChild(optgroup);
-            }
-
-            // Add chains
-            if (chains.length > 0) {
-                const optgroup = document.createElement('optgroup');
-                optgroup.label = 'Chains & Multi-Model';
-                chains.forEach((chain, index) => {
-                    const option = document.createElement('option');
-                    option.value = `chain:${index}`;
-                    option.textContent = chain.name;
-                    optgroup.appendChild(option);
-                });
-                select.appendChild(optgroup);
-            }
+            models.forEach((model, index) => {
+                const option = document.createElement('option');
+                option.value = `model:${index}`;
+                option.textContent = model.name;
+                select.appendChild(option);
+            });
         }
 
         function updatePromptsSelect() {
@@ -678,24 +651,94 @@
             updatePromptsSelect();
         }
 
+        function addModel() {
+            const name = document.getElementById('new-model-name').value.trim();
+            const template = document.getElementById('new-model-template').value;
+            const endpoint = document.getElementById('new-model-endpoint').value.trim();
+            const model_id = document.getElementById('new-model-id').value.trim();
+            const api_key = document.getElementById('new-model-key').value.trim();
+            const max_tokens = document.getElementById('new-model-tokens').value.trim();
+
+            if (!name || !endpoint || !model_id || !api_key) {
+                alert('Please fill in name, endpoint, model ID, and API key');
+                return;
+            }
+
+            const model = {
+                name,
+                template,
+                endpoint,
+                model_id,
+                api_key
+            };
+
+            if (max_tokens) {
+                model.max_tokens = parseInt(max_tokens);
+            }
+
+            models.push(model);
+            saveToStorage();
+            updateModelSelect();
+            updateModelsList();
+
+            // Clear form
+            document.getElementById('new-model-name').value = '';
+            document.getElementById('new-model-endpoint').value = '';
+            document.getElementById('new-model-id').value = '';
+            document.getElementById('new-model-key').value = '';
+            document.getElementById('new-model-tokens').value = '';
+        }
+
+        function deleteModel(index) {
+            if (!confirm('Delete this model?')) return;
+            models.splice(index, 1);
+            saveToStorage();
+            updateModelSelect();
+            updateModelsList();
+        }
+
+        function updateModelsList() {
+            const list = document.getElementById('models-list');
+            list.innerHTML = '';
+
+            if (models.length === 0) {
+                list.innerHTML = '<p style="color: #888;">No models configured yet.</p>';
+                return;
+            }
+
+            models.forEach((model, index) => {
+                const div = document.createElement('div');
+                div.className = 'prompt-item';
+                div.innerHTML = `
+                    <h4>${escapeHtml(model.name)}</h4>
+                    <div style="font-size: 13px; color: #aaa; margin-bottom: 4px;">
+                        <strong>Template:</strong> ${escapeHtml(model.template)}<br>
+                        <strong>Model ID:</strong> ${escapeHtml(model.model_id)}<br>
+                        <strong>Endpoint:</strong> ${escapeHtml(model.endpoint.substring(0, 50))}${model.endpoint.length > 50 ? '...' : ''}
+                    </div>
+                    <div class="prompt-actions">
+                        <button onclick="deleteModel(${index})">Delete</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
         function saveModelsConfig() {
             const configText = document.getElementById('models-config').value;
             try {
                 const parsed = JSON.parse(configText);
-                
-                // Support both old array format and new object format
+
                 if (Array.isArray(parsed)) {
-                    // Old format: just an array of models
                     models = parsed;
-                    chains = [];
                 } else {
-                    // New format: object with models and chains
-                    models = parsed.models || [];
-                    chains = parsed.chains || [];
+                    alert('Configuration must be an array of models');
+                    return;
                 }
-                
+
                 saveToStorage();
                 updateModelSelect();
+                updateModelsList();
                 alert('Configuration saved!');
             } catch (e) {
                 alert('Invalid JSON: ' + e.message);
@@ -761,16 +804,16 @@
             const messageText = input.value.trim();
             
             if (!messageText && attachedFiles.length === 0) return;
-            if (models.length === 0 && chains.length === 0) {
-                alert('Please configure at least one model or chain in Settings');
+            if (models.length === 0) {
+                alert('Please configure at least one model in Settings');
                 return;
             }
 
             const selectValue = document.getElementById('model-select').value;
             const [type, index] = selectValue.split(':');
-            
+
             if (!selectValue) {
-                alert('Please select a model or chain');
+                alert('Please select a model');
                 return;
             }
 
@@ -801,20 +844,15 @@
             document.getElementById('send-btn').disabled = true;
 
             try {
-                if (type === 'model') {
-                    const model = models[parseInt(index)];
-                    const assistantMessage = {
-                        role: 'assistant',
-                        content: '',
-                        thinking: '',
-                        timestamp: Date.now()
-                    };
-                    currentConversation.push(assistantMessage);
-                    await streamResponse(model, assistantMessage);
-                } else if (type === 'chain') {
-                    const chain = chains[parseInt(index)];
-                    await executeChain(chain, userMessage);
-                }
+                const model = models[parseInt(index)];
+                const assistantMessage = {
+                    role: 'assistant',
+                    content: '',
+                    thinking: '',
+                    timestamp: Date.now()
+                };
+                currentConversation.push(assistantMessage);
+                await streamResponse(model, assistantMessage);
             } catch (error) {
                 console.error('Error:', error);
                 const errorMessage = {
@@ -833,11 +871,13 @@
 
         async function streamResponse(model, assistantMessage) {
             const messages = buildMessagesForAPI(model, assistantMessage);
-            
+
             if (model.template === 'anthropic') {
                 await streamAnthropic(model, messages, assistantMessage);
             } else if (model.template === 'openai') {
                 await streamOpenAI(model, messages, assistantMessage);
+            } else if (model.template === 'google') {
+                await streamGoogle(model, messages, assistantMessage);
             } else {
                 await streamCustom(model, messages, assistantMessage);
             }
@@ -1067,197 +1107,68 @@
             await streamOpenAI(model, messages, assistantMessage);
         }
 
-        async function executeChain(chain, userMessage) {
-            if (chain.type === 'chain') {
-                await executeSequentialChain(chain, userMessage);
-            } else if (chain.type === 'debate') {
-                await executeDebate(chain, userMessage);
-            } else if (chain.type === 'parallel') {
-                await executeParallel(chain, userMessage);
-            }
-        }
+        async function streamGoogle(model, messages, assistantMessage) {
+            // Convert messages to Google Gemini format
+            const contents = [];
 
-        async function executeSequentialChain(chain, userMessage) {
-            let currentInput = userMessage.content;
-            let currentFiles = userMessage.files;
+            for (const msg of messages) {
+                const parts = [];
 
-            for (let i = 0; i < chain.steps.length; i++) {
-                const step = chain.steps[i];
-                const model = models[step.model_index];
-                
-                if (!model) {
-                    throw new Error(`Model at index ${step.model_index} not found`);
-                }
-
-                // Build messages for this step
-                const messages = [];
-                
-                // Add previous conversation context if this isn't the first step
-                if (i > 0) {
-                    // Include the original user message
-                    messages.push({
-                        role: 'user',
-                        content: userMessage.content
-                    });
-                    // Include previous step's output
-                    messages.push({
-                        role: 'assistant',
-                        content: currentInput
-                    });
-                    // Add current step's prompt
-                    if (step.system_prompt) {
-                        messages.push({
-                            role: 'user',
-                            content: step.system_prompt
-                        });
-                    }
-                } else {
-                    // First step: use original user message
-                    const content = [];
-                    if (step.system_prompt) {
-                        content.push({ type: 'text', text: step.system_prompt + '\n\n' + currentInput });
-                    } else {
-                        content.push({ type: 'text', text: currentInput });
-                    }
-
-                    if (step.pass_files && currentFiles) {
-                        for (const file of currentFiles) {
-                            if (file.type.startsWith('image/')) {
-                                content.push({
-                                    type: 'image',
-                                    source: {
-                                        type: 'base64',
-                                        media_type: file.type,
-                                        data: file.base64
-                                    }
-                                });
-                            }
+                if (typeof msg.content === 'string') {
+                    parts.push({ text: msg.content });
+                } else if (Array.isArray(msg.content)) {
+                    for (const item of msg.content) {
+                        if (item.type === 'text') {
+                            parts.push({ text: item.text });
+                        } else if (item.type === 'image' && item.source) {
+                            parts.push({
+                                inlineData: {
+                                    mimeType: item.source.media_type,
+                                    data: item.source.data
+                                }
+                            });
                         }
                     }
-
-                    messages.push({
-                        role: 'user',
-                        content: content.length === 1 && content[0].type === 'text' ? content[0].text : content
-                    });
                 }
 
-                // Create assistant message for this step
-                const assistantMessage = {
-                    role: 'assistant',
-                    content: '',
-                    thinking: '',
-                    chainStep: `${chain.name} - Step ${i + 1}/${chain.steps.length}: ${model.name}`,
-                    timestamp: Date.now()
-                };
-                currentConversation.push(assistantMessage);
-                renderConversation();
-
-                // Stream this step
-                await streamSingleStep(model, messages, assistantMessage, step.system_prompt);
-                
-                // Use output as input for next step
-                currentInput = assistantMessage.content;
-                currentFiles = null; // Files only pass through first step
+                contents.push({
+                    role: msg.role === 'assistant' ? 'model' : 'user',
+                    parts: parts
+                });
             }
-        }
 
-        async function executeDebate(chain, userMessage) {
-            const debateModels = chain.models.map(idx => models[idx]);
-            const rounds = chain.rounds || 3;
+            const body = {
+                contents: contents
+            };
 
-            for (let round = 0; round < rounds; round++) {
-                for (let i = 0; i < debateModels.length; i++) {
-                    const model = debateModels[i];
-                    
-                    if (!model) continue;
-
-                    // Create assistant message for this model
-                    const assistantMessage = {
-                        role: 'assistant',
-                        content: '',
-                        thinking: '',
-                        debateInfo: `${chain.name} - Round ${round + 1}/${rounds} - ${model.name}`,
-                        timestamp: Date.now()
+            // Add system instruction if present
+            if (activePromptId) {
+                const prompt = systemPrompts.find(p => p.id === activePromptId);
+                if (prompt) {
+                    body.system_instruction = {
+                        parts: [{ text: prompt.content }]
                     };
-                    currentConversation.push(assistantMessage);
-                    renderConversation();
-
-                    await streamResponse(model, assistantMessage);
-                }
-            }
-        }
-
-        async function executeParallel(chain, userMessage) {
-            const parallelModels = chain.models.map(idx => models[idx]);
-            const responses = [];
-
-            for (const model of parallelModels) {
-                if (!model) continue;
-
-                const assistantMessage = {
-                    role: 'assistant',
-                    content: '',
-                    thinking: '',
-                    parallelInfo: `${chain.name} - ${model.name}`,
-                    timestamp: Date.now()
-                };
-                currentConversation.push(assistantMessage);
-                responses.push({ model, assistantMessage });
-            }
-
-            renderConversation();
-
-            // Stream all in parallel
-            await Promise.all(responses.map(({ model, assistantMessage }) => 
-                streamResponse(model, assistantMessage)
-            ));
-        }
-
-        async function streamSingleStep(model, messages, assistantMessage, systemPromptOverride) {
-            if (model.template === 'anthropic') {
-                await streamAnthropicStep(model, messages, assistantMessage, systemPromptOverride);
-            } else if (model.template === 'openai') {
-                await streamOpenAIStep(model, messages, assistantMessage, systemPromptOverride);
-            } else {
-                await streamOpenAIStep(model, messages, assistantMessage, systemPromptOverride);
-            }
-        }
-
-        async function streamAnthropicStep(model, messages, assistantMessage, systemPromptOverride) {
-            const body = {
-                model: model.model_id,
-                max_tokens: model.max_tokens || 8096,
-                messages: messages,
-                stream: true
-            };
-
-            if (systemPromptOverride) {
-                body.system = systemPromptOverride;
-            } else if (activePromptId) {
-                const prompt = systemPrompts.find(p => p.id === activePromptId);
-                if (prompt) {
-                    body.system = prompt.content;
                 }
             }
 
-            console.log('Anthropic chain step request:', { endpoint: model.endpoint, body });
+            // Build endpoint with API key
+            const endpoint = `${model.endpoint}?alt=sse&key=${model.api_key}`;
+
+            console.log('Google request:', { endpoint, body });
 
             let response;
             try {
-                response = await fetch(model.endpoint, {
+                response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'anthropic-version': '2023-06-01',
-                        'anthropic-dangerous-direct-browser-access': 'true',
-                        'x-api-key': model.api_key,
                         ...(model.headers || {})
                     },
                     body: JSON.stringify(body)
                 });
             } catch (e) {
                 console.error('Fetch error:', e);
-                throw new Error(`Network error: ${e.message}`);
+                throw new Error(`Network error: ${e.message}. Check your internet connection and API endpoint.`);
             }
 
             if (!response.ok) {
@@ -1287,97 +1198,12 @@
                     if (line.startsWith('data: ')) {
                         const data = line.slice(6);
                         if (data === '[DONE]') continue;
-                        
+
                         try {
                             const parsed = JSON.parse(data);
-                            
-                            if (parsed.type === 'content_block_start') {
-                                if (parsed.content_block?.type === 'thinking') {
-                                    assistantMessage.hasThinking = true;
-                                }
-                            } else if (parsed.type === 'content_block_delta') {
-                                if (parsed.delta?.type === 'thinking_delta') {
-                                    assistantMessage.thinking += parsed.delta.thinking || '';
-                                } else if (parsed.delta?.type === 'text_delta') {
-                                    assistantMessage.content += parsed.delta.text || '';
-                                }
-                                renderConversation();
-                            }
-                        } catch (e) {
-                            console.error('Error parsing SSE:', e, 'Line:', line);
-                        }
-                    }
-                }
-            }
-        }
-
-        async function streamOpenAIStep(model, messages, assistantMessage, systemPromptOverride) {
-            const body = {
-                model: model.model_id,
-                messages: messages,
-                stream: true
-            };
-
-            if (systemPromptOverride) {
-                body.messages.unshift({ role: 'system', content: systemPromptOverride });
-            } else if (activePromptId) {
-                const prompt = systemPrompts.find(p => p.id === activePromptId);
-                if (prompt) {
-                    body.messages.unshift({ role: 'system', content: prompt.content });
-                }
-            }
-
-            console.log('OpenAI chain step request:', { endpoint: model.endpoint, body });
-
-            let response;
-            try {
-                response = await fetch(model.endpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${model.api_key}`,
-                        ...(model.headers || {})
-                    },
-                    body: JSON.stringify(body)
-                });
-            } catch (e) {
-                console.error('Fetch error:', e);
-                throw new Error(`Network error: ${e.message}`);
-            }
-
-            if (!response.ok) {
-                let errorText;
-                try {
-                    errorText = await response.text();
-                    console.error('API error response:', errorText);
-                } catch (e) {
-                    errorText = 'Could not read error response';
-                }
-                throw new Error(`API error ${response.status}: ${errorText}`);
-            }
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop();
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
-                        if (data === '[DONE]') continue;
-                        
-                        try {
-                            const parsed = JSON.parse(data);
-                            const delta = parsed.choices?.[0]?.delta?.content;
-                            if (delta) {
-                                assistantMessage.content += delta;
+                            const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+                            if (text) {
+                                assistantMessage.content += text;
                                 renderConversation();
                             }
                         } catch (e) {
@@ -1418,14 +1244,6 @@
                     div.innerHTML = contentHtml;
                     container.appendChild(div);
                 } else if (msg.role === 'assistant') {
-                    // Show chain/debate/parallel info if present
-                    if (msg.chainStep || msg.debateInfo || msg.parallelInfo) {
-                        const infoDiv = document.createElement('div');
-                        infoDiv.style.cssText = 'color: #4a9eff; font-size: 12px; margin-bottom: 4px; font-weight: 600;';
-                        infoDiv.textContent = msg.chainStep || msg.debateInfo || msg.parallelInfo;
-                        container.appendChild(infoDiv);
-                    }
-
                     if (msg.thinking && msg.hasThinking) {
                         const thinkingDiv = document.createElement('div');
                         thinkingDiv.className = 'message thinking';
@@ -1540,7 +1358,6 @@
         function exportData() {
             const data = {
                 models,
-                chains,
                 systemPrompts,
                 activePromptId,
                 currentConversation,
@@ -1557,9 +1374,8 @@
             reader.onload = (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
-                    
+
                     if (data.models) models = data.models;
-                    if (data.chains) chains = data.chains;
                     if (data.systemPrompts) systemPrompts = data.systemPrompts;
                     if (data.activePromptId) activePromptId = data.activePromptId;
                     if (data.currentConversation) currentConversation = data.currentConversation;
