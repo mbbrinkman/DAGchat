@@ -148,12 +148,33 @@
 
         .input-row {
             display: flex;
+            flex-direction: column;
             gap: 8px;
-            align-items: flex-end;
+        }
+
+        .input-controls, .send-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-controls {
+            width: 100%;
+        }
+
+        .input-controls button {
+            flex: 1;
+        }
+
+        .send-controls {
+            width: 100%;
+        }
+
+        .send-controls button {
+            flex: 1;
         }
 
         #message-input {
-            flex: 1;
+            width: 100%;
             background: #1a1a1a;
             border: 1px solid #3a3a3a;
             color: #e0e0e0;
@@ -414,10 +435,15 @@
             <div class="attached-files" id="attached-files"></div>
             <div class="input-row">
                 <input type="file" id="file-input" multiple accept="*/*">
-                <button class="file-upload-btn" onclick="document.getElementById('file-input').click()">📎</button>
+                <div class="input-controls">
+                    <button class="file-upload-btn" onclick="document.getElementById('file-input').click()">📎</button>
+                    <button class="model-select" id="model-picker-btn">Select Models</button>
+                </div>
                 <textarea id="message-input" placeholder="Type a message... (Click Send button to send)"></textarea>
-                <button class="model-select" id="model-picker-btn">Select Models</button>
-                <button id="send-btn">Send</button>
+                <div class="send-controls">
+                    <button id="send-btn">Send</button>
+                    <button id="auto-btn" style="display: none;">Start Auto</button>
+                </div>
             </div>
             <div id="model-picker-popup" style="display: none;">
                 <div class="popup-content">
@@ -428,6 +454,7 @@
                         <label><input type="radio" name="model-mode" value="parallel" checked> Parallel</label>
                         <label><input type="radio" name="model-mode" value="serial"> Serial</label>
                         <label><input type="radio" name="model-mode" value="rotating"> Rotating</label>
+                        <label><input type="radio" name="model-mode" value="autonomous"> Autonomous</label>
                     </div>
                     <button onclick="closeModelPicker()">Done</button>
                 </div>
@@ -519,6 +546,8 @@
         let selectedModelIndices = [];
         let multiModelMode = 'parallel';
         let rotationIndex = 0;
+        let isAutonomousRunning = false;
+        let autonomousRounds = 0;
 
         // Initialize
         function init() {
@@ -625,9 +654,13 @@
             document.querySelectorAll('input[name="model-mode"]').forEach(radio => {
                 radio.addEventListener('change', (e) => {
                     multiModelMode = e.target.value;
+                    updateUIForMode();
                     saveToStorage();
                 });
             });
+
+            // Autonomous button
+            document.getElementById('auto-btn').addEventListener('click', toggleAutonomous);
 
             // Template selector - show template config
             document.getElementById('new-model-template').addEventListener('change', (e) => {
@@ -637,146 +670,109 @@
                 // Get available API keys for the selected template
                 const templateKeys = apiKeys.filter(k => k.provider === template);
                 const apiKeyRef = templateKeys.length > 0
-                    ? `"api_key_id": "${templateKeys[0].id}"  // Using: ${templateKeys[0].name}`
-                    : `"api_key": "your-api-key-here"  // Or add an API key in the API Keys tab`;
+                    ? `"api_key_id": "${templateKeys[0].id}"`
+                    : `"api_key": "your-api-key-here"`;
 
                 const templates = {
                     anthropic: `"template": "anthropic",
   "endpoint": "https://api.anthropic.com/v1/messages",
   "model_id": "claude-3-5-sonnet-20241022",
   ${apiKeyRef},
-
-  // Sampling parameters
+  "system_prompt": "",
   "max_tokens": 8096,
-  "temperature": 1.0,  // 0.0-1.0, higher = more random
-  "top_p": 1.0,  // 0.0-1.0, nucleus sampling
-  "top_k": null,  // Only sample from top K options
-  "stop_sequences": null,  // Array of strings to stop generation
-
-  // Metadata (for tracking/filtering)
-  "metadata": null,  // {"user_id": "123"}
-
-  // Custom headers
-  "headers": {},  // {"X-Custom-Header": "value"}
-
-  // Beta features (extended thinking, prompt caching, etc.)
-  "beta_headers": []  // ["prompt-caching-2024-07-31", "max-tokens-3-5-sonnet-2024-07-15"]
+  "temperature": 1.0,
+  "top_p": 1.0,
+  "top_k": null,
+  "stop_sequences": null,
+  "metadata": null,
+  "headers": {},
+  "beta_headers": []
 `,
                     openai: `"template": "openai",
   "endpoint": "https://api.openai.com/v1/chat/completions",
   "model_id": "gpt-4-turbo",
   ${apiKeyRef},
-
-  // Sampling parameters
-  "max_tokens": null,  // Max tokens to generate
-  "temperature": 1.0,  // 0.0-2.0, higher = more random
-  "top_p": 1.0,  // 0.0-1.0, nucleus sampling
-  "frequency_penalty": 0,  // -2.0 to 2.0, penalize frequent tokens
-  "presence_penalty": 0,  // -2.0 to 2.0, penalize tokens that appeared
-  "stop": null,  // String or array of strings to stop at
-
-  // Response options
-  "n": 1,  // Number of completions to generate
-  "stream_options": null,  // {"include_usage": true}
-  "response_format": null,  // {"type": "json_object"} for JSON mode
-  "seed": null,  // Integer for deterministic sampling
-  "logprobs": null,  // Return log probabilities
-  "top_logprobs": null,  // Number of most likely tokens to return (0-20)
-  "user": null,  // Unique identifier for end-user
-
-  // Function calling
-  "tools": null,  // [{"type": "function", "function": {...}}]
-  "tool_choice": null,  // "none", "auto", or {"type": "function", "function": {"name": "..."}}
-
-  // Custom headers
-  "headers": {}  // {"X-Custom-Header": "value"}
+  "system_prompt": "",
+  "max_tokens": null,
+  "temperature": 1.0,
+  "top_p": 1.0,
+  "frequency_penalty": 0,
+  "presence_penalty": 0,
+  "stop": null,
+  "n": 1,
+  "stream_options": null,
+  "response_format": null,
+  "seed": null,
+  "logprobs": null,
+  "top_logprobs": null,
+  "user": null,
+  "tools": null,
+  "tool_choice": null,
+  "headers": {}
 `,
                     google: `"template": "google",
   "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:streamGenerateContent",
   "model_id": "gemini-1.5-pro",
   ${apiKeyRef},
-
-  // Sampling parameters
-  "temperature": 1.0,  // 0.0-2.0, higher = more random
-  "top_p": 1.0,  // 0.0-1.0, nucleus sampling
-  "top_k": null,  // Only sample from top K options
-  "max_output_tokens": null,  // Max tokens to generate
-  "candidate_count": 1,  // Number of responses to generate
-  "stop_sequences": null,  // Array of strings to stop generation
-
-  // Safety settings
-  "safety_settings": null,  // [{"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"}]
-
-  // Function calling
-  "tools": null,  // [{"function_declarations": [{...}]}]
-  "tool_config": null,  // {"function_calling_config": {"mode": "AUTO"}}
-
-  // Custom headers
-  "headers": {}  // {"X-Custom-Header": "value"}
+  "system_prompt": "",
+  "temperature": 1.0,
+  "top_p": 1.0,
+  "top_k": null,
+  "max_output_tokens": null,
+  "candidate_count": 1,
+  "stop_sequences": null,
+  "safety_settings": null,
+  "tools": null,
+  "tool_config": null,
+  "headers": {}
 `,
                     xai: `"template": "xai",
   "endpoint": "https://api.x.ai/v1/chat/completions",
   "model_id": "grok-beta",
   ${apiKeyRef},
-
-  // Sampling parameters
-  "max_tokens": null,  // Max tokens to generate
-  "temperature": 1.0,  // 0.0-2.0, higher = more random
-  "top_p": 1.0,  // 0.0-1.0, nucleus sampling
-  "frequency_penalty": 0,  // -2.0 to 2.0, penalize frequent tokens
-  "presence_penalty": 0,  // -2.0 to 2.0, penalize tokens that appeared
-  "stop": null,  // String or array of strings to stop at
-
-  // Response options
-  "n": 1,  // Number of completions to generate
-  "stream_options": null,  // {"include_usage": true}
-  "response_format": null,  // {"type": "json_object"} for JSON mode
-  "seed": null,  // Integer for deterministic sampling
-  "logprobs": null,  // Return log probabilities
-  "top_logprobs": null,  // Number of most likely tokens to return (0-20)
-  "user": null,  // Unique identifier for end-user
-
-  // Function calling
-  "tools": null,  // [{"type": "function", "function": {...}}]
-  "tool_choice": null,  // "none", "auto", or {"type": "function", "function": {"name": "..."}}
-
-  // Custom headers
-  "headers": {}  // {"X-Custom-Header": "value"}
+  "system_prompt": "",
+  "max_tokens": null,
+  "temperature": 1.0,
+  "top_p": 1.0,
+  "frequency_penalty": 0,
+  "presence_penalty": 0,
+  "stop": null,
+  "n": 1,
+  "stream_options": null,
+  "response_format": null,
+  "seed": null,
+  "logprobs": null,
+  "top_logprobs": null,
+  "user": null,
+  "tools": null,
+  "tool_choice": null,
+  "headers": {}
 `,
                     openrouter: `"template": "openrouter",
   "endpoint": "https://openrouter.ai/api/v1/chat/completions",
   "model_id": "anthropic/claude-3.5-sonnet",
   ${apiKeyRef},
-
-  // Sampling parameters
-  "max_tokens": null,  // Max tokens to generate
-  "temperature": 1.0,  // 0.0-2.0, higher = more random
-  "top_p": 1.0,  // 0.0-1.0, nucleus sampling
-  "frequency_penalty": 0,  // -2.0 to 2.0, penalize frequent tokens
-  "presence_penalty": 0,  // -2.0 to 2.0, penalize tokens that appeared
-  "stop": null,  // String or array of strings to stop at
-
-  // Response options
-  "n": 1,  // Number of completions to generate
-  "stream_options": null,  // {"include_usage": true}
-  "response_format": null,  // {"type": "json_object"} for JSON mode
-  "seed": null,  // Integer for deterministic sampling
-  "logprobs": null,  // Return log probabilities
-  "top_logprobs": null,  // Number of most likely tokens to return (0-20)
-  "user": null,  // Unique identifier for end-user
-
-  // Function calling
-  "tools": null,  // [{"type": "function", "function": {...}}]
-  "tool_choice": null,  // "none", "auto", or {"type": "function", "function": {"name": "..."}}
-
-  // OpenRouter-specific options
-  "transforms": null,  // ["middle-out"] for compression
-  "models": null,  // ["anthropic/claude-3.5-sonnet", "openai/gpt-4"] for fallbacks
-  "route": null,  // "fallback" routing strategy
-  "provider": null,  // {"order": ["Fireworks"], "allow_fallbacks": false}
-
-  // Custom headers
-  "headers": {}  // {"HTTP-Referer": "https://yoursite.com", "X-Title": "Your App"}
+  "system_prompt": "",
+  "max_tokens": null,
+  "temperature": 1.0,
+  "top_p": 1.0,
+  "frequency_penalty": 0,
+  "presence_penalty": 0,
+  "stop": null,
+  "n": 1,
+  "stream_options": null,
+  "response_format": null,
+  "seed": null,
+  "logprobs": null,
+  "top_logprobs": null,
+  "user": null,
+  "tools": null,
+  "tool_choice": null,
+  "transforms": null,
+  "models": null,
+  "route": null,
+  "provider": null,
+  "headers": {}
 `
                 };
 
@@ -856,6 +852,63 @@
 
         function closeModelPicker() {
             document.getElementById('model-picker-popup').style.display = 'none';
+            updateUIForMode();
+        }
+
+        function updateUIForMode() {
+            const autoBtn = document.getElementById('auto-btn');
+            const sendBtn = document.getElementById('send-btn');
+            const messageInput = document.getElementById('message-input');
+
+            if (multiModelMode === 'autonomous') {
+                autoBtn.style.display = 'block';
+                sendBtn.style.display = 'none';
+                messageInput.disabled = true;
+                messageInput.placeholder = 'Autonomous mode - models will converse automatically';
+                updateModelPickerButton();
+            } else {
+                autoBtn.style.display = 'none';
+                sendBtn.style.display = 'block';
+                messageInput.disabled = false;
+                messageInput.placeholder = 'Type a message... (Click Send button to send)';
+            }
+        }
+
+        async function toggleAutonomous() {
+            const autoBtn = document.getElementById('auto-btn');
+
+            if (isAutonomousRunning) {
+                isAutonomousRunning = false;
+                autoBtn.textContent = 'Start Auto';
+                autoBtn.style.background = '#4a9eff';
+                return;
+            }
+
+            if (selectedModelIndices.length < 2) {
+                alert('Please select at least 2 models for autonomous mode');
+                return;
+            }
+
+            isAutonomousRunning = true;
+            autonomousRounds = 0;
+            autoBtn.textContent = 'Stop Auto';
+            autoBtn.style.background = '#ff4a4a';
+
+            while (isAutonomousRunning) {
+                try {
+                    await handleAutonomousRound();
+                    autonomousRounds++;
+
+                    // Small delay between rounds
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                } catch (error) {
+                    console.error('Autonomous error:', error);
+                    isAutonomousRunning = false;
+                    autoBtn.textContent = 'Start Auto';
+                    autoBtn.style.background = '#4a9eff';
+                    alert('Error in autonomous mode: ' + error.message);
+                }
+            }
         }
 
         function updatePromptsSelect() {
@@ -894,6 +947,7 @@
                     <h4>${escapeHtml(prompt.name)}</h4>
                     <div style="white-space: pre-wrap; font-size: 13px; color: #aaa;">${escapeHtml(prompt.content.substring(0, 200))}${prompt.content.length > 200 ? '...' : ''}</div>
                     <div class="prompt-actions">
+                        <button onclick="editPrompt('${prompt.id}')">Edit</button>
                         <button onclick="deletePrompt('${prompt.id}')">Delete</button>
                     </div>
                 `;
@@ -923,6 +977,20 @@
 
             document.getElementById('new-prompt-name').value = '';
             document.getElementById('new-prompt-content').value = '';
+        }
+
+        function editPrompt(id) {
+            const prompt = systemPrompts.find(p => p.id === id);
+            if (!prompt) return;
+
+            document.getElementById('new-prompt-name').value = prompt.name;
+            document.getElementById('new-prompt-content').value = prompt.content;
+
+            // Delete the old prompt
+            deletePrompt(id);
+
+            // Scroll to the form
+            document.querySelector('#new-prompt-name').scrollIntoView({ behavior: 'smooth' });
         }
 
         function deletePrompt(id) {
@@ -1013,44 +1081,10 @@
             }
 
             try {
-                // Strip inline comments (// ...) from JSON, but not inside strings
-                const cleanedConfig = configText
-                    .split('\n')
-                    .map(line => {
-                        // Remove inline comments after values, but not inside quoted strings
-                        let inString = false;
-                        let escapeNext = false;
-
-                        for (let i = 0; i < line.length; i++) {
-                            if (escapeNext) {
-                                escapeNext = false;
-                                continue;
-                            }
-
-                            if (line[i] === '\\') {
-                                escapeNext = true;
-                                continue;
-                            }
-
-                            if (line[i] === '"') {
-                                inString = !inString;
-                                continue;
-                            }
-
-                            // Found // outside of a string - this is a comment
-                            if (!inString && line[i] === '/' && line[i + 1] === '/') {
-                                return line.substring(0, i).trimEnd();
-                            }
-                        }
-
-                        return line;
-                    })
-                    .join('\n');
-
                 // Wrap in {} if not already wrapped
-                const jsonText = cleanedConfig.trim().startsWith('{')
-                    ? cleanedConfig
-                    : `{${cleanedConfig}}`;
+                const jsonText = configText.trim().startsWith('{')
+                    ? configText
+                    : `{${configText}}`;
 
                 const config = JSON.parse(jsonText);
 
@@ -1079,6 +1113,25 @@
             } catch (e) {
                 alert('Invalid JSON configuration: ' + e.message);
             }
+        }
+
+        function editModel(index) {
+            const model = models[index];
+            const { name, ...config } = model;
+
+            document.getElementById('new-model-name').value = name;
+            document.getElementById('new-model-template').value = config.template;
+
+            // Convert config back to formatted JSON without outer braces
+            const configJson = JSON.stringify(config, null, 2);
+            const withoutBraces = configJson.substring(1, configJson.length - 1).trim();
+            document.getElementById('new-model-config').value = withoutBraces;
+
+            // Delete the old model
+            deleteModel(index);
+
+            // Scroll to the form
+            document.querySelector('#new-model-name').scrollIntoView({ behavior: 'smooth' });
         }
 
         function deleteModel(index) {
@@ -1123,6 +1176,7 @@
                         <pre style="background: #1a1a1a; padding: 8px; border-radius: 4px; overflow-x: auto; font-size: 12px; margin-top: 8px;">${escapeHtml(configJson)}</pre>
                     </details>
                     <div class="prompt-actions">
+                        <button onclick="editModel(${index})">Edit</button>
                         <button onclick="deleteModel(${index})">Delete</button>
                     </div>
                 `;
@@ -1316,6 +1370,37 @@
             saveToStorage();
         }
 
+        async function handleAutonomousRound() {
+            // In autonomous mode, models converse with each other in rotating order
+            const orderedIndices = [...selectedModelIndices];
+
+            // Rotate based on rotationIndex
+            for (let i = 0; i < rotationIndex % orderedIndices.length; i++) {
+                orderedIndices.push(orderedIndices.shift());
+            }
+
+            // Pick the next model in rotation
+            const modelIndex = orderedIndices[0];
+            const model = models[modelIndex];
+
+            const assistantMessage = {
+                role: 'assistant',
+                content: '',
+                thinking: '',
+                modelName: model.name,
+                timestamp: Date.now()
+            };
+
+            currentConversation.push(assistantMessage);
+            renderConversation();
+            await streamResponse(model, assistantMessage);
+            saveToStorage();
+
+            // Increment rotation
+            rotationIndex++;
+            saveToStorage();
+        }
+
         function resolveApiKey(model) {
             // If model has api_key_id, look up the key
             if (model.api_key_id) {
@@ -1430,11 +1515,8 @@
                 body.metadata = model.metadata;
             }
 
-            if (activePromptId) {
-                const prompt = systemPrompts.find(p => p.id === activePromptId);
-                if (prompt) {
-                    body.system = prompt.content;
-                }
+            if (model.system_prompt && model.system_prompt.trim()) {
+                body.system = model.system_prompt;
             }
 
             console.log('Anthropic request:', { endpoint: model.endpoint, body });
@@ -1576,11 +1658,8 @@
                 body.tool_choice = model.tool_choice;
             }
 
-            if (activePromptId) {
-                const prompt = systemPrompts.find(p => p.id === activePromptId);
-                if (prompt) {
-                    body.messages.unshift({ role: 'system', content: prompt.content });
-                }
+            if (model.system_prompt && model.system_prompt.trim()) {
+                body.messages.unshift({ role: 'system', content: model.system_prompt });
             }
 
             console.log('OpenAI request:', { endpoint: model.endpoint, body });
@@ -1708,11 +1787,8 @@
                 body.tool_choice = model.tool_choice;
             }
 
-            if (activePromptId) {
-                const prompt = systemPrompts.find(p => p.id === activePromptId);
-                if (prompt) {
-                    body.messages.unshift({ role: 'system', content: prompt.content });
-                }
+            if (model.system_prompt && model.system_prompt.trim()) {
+                body.messages.unshift({ role: 'system', content: model.system_prompt });
             }
 
             console.log('xAI request:', { endpoint: model.endpoint, body });
@@ -2011,13 +2087,10 @@
             }
 
             // Add system instruction if present
-            if (activePromptId) {
-                const prompt = systemPrompts.find(p => p.id === activePromptId);
-                if (prompt) {
-                    body.system_instruction = {
-                        parts: [{ text: prompt.content }]
-                    };
-                }
+            if (model.system_prompt && model.system_prompt.trim()) {
+                body.system_instruction = {
+                    parts: [{ text: model.system_prompt }]
+                };
             }
 
             // Build endpoint with API key
