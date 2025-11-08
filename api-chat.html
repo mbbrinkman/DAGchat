@@ -445,6 +445,7 @@
     <div class="tabs">
         <button class="tab active" data-tab="chat">Chat</button>
         <button class="tab" data-tab="history">History</button>
+        <button class="tab" data-tab="help">Help</button>
         <button class="tab" data-tab="settings">Settings</button>
     </div>
 
@@ -494,6 +495,113 @@
                 <button class="primary" onclick="clearHistory()">Clear All History</button>
             </div>
             <div id="history-list"></div>
+        </div>
+    </div>
+
+    <div id="help-tab" class="tab-content">
+        <div class="settings-container">
+            <div class="settings-section">
+                <h2>Multi-Model API Chat - Help & Customization Guide</h2>
+
+                <h3>Quick Start</h3>
+                <ol>
+                    <li><strong>Add API Keys:</strong> Go to Settings → Add API Key section</li>
+                    <li><strong>Add Models:</strong> Go to Settings → Add New Model, select a template, customize the config</li>
+                    <li><strong>Select Models:</strong> Click "Select Models" button, check the models you want to use</li>
+                    <li><strong>Choose Mode:</strong> In model picker, select Parallel/Serial/Rotating/Autonomous</li>
+                    <li><strong>Chat:</strong> Type your message and click Send!</li>
+                </ol>
+
+                <h3>Model Configuration</h3>
+                <p>Each model is defined by a JSON configuration with NO outer braces:</p>
+                <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; overflow-x: auto;">"template": "anthropic",
+"endpoint": "https://api.anthropic.com/v1/messages",
+"model_id": "claude-3-5-sonnet-20241022",
+"api_key_id": "123456",
+"system_prompt": "You are a helpful assistant",
+"max_tokens": 8096,
+"temperature": 1.0</pre>
+
+                <h4>Per-Model System Prompts</h4>
+                <p>Set <code>"system_prompt": "Your prompt here"</code> in each model's config to give it a unique personality.</p>
+
+                <h4>Global System Prompt Override</h4>
+                <p>Use the "Active System Prompt" dropdown in the model picker to temporarily override all models' prompts.</p>
+
+                <h3>Multi-Model Modes</h3>
+                <ul>
+                    <li><strong>Parallel:</strong> All selected models respond independently to your message. Each only sees your messages, not other models' responses.</li>
+                    <li><strong>Serial:</strong> Models respond one after another. Each model sees all previous messages including other models' responses.</li>
+                    <li><strong>Rotating:</strong> Like Serial, but the order rotates each turn (1,2,3 → 3,1,2 → 2,3,1 → repeat).</li>
+                    <li><strong>Autonomous:</strong> Models converse with each other without human input. Click "Start Auto" to begin.</li>
+                </ul>
+
+                <h3>Model Identity System</h3>
+                <p>When multiple models are selected, each model automatically receives identity information:</p>
+                <ul>
+                    <li><strong>Parallel:</strong> "You are [Model Name]. You are conversing with: Human."</li>
+                    <li><strong>Serial/Rotating:</strong> "You are [Model Name]. You are conversing with: Human, [Other Models]."</li>
+                    <li><strong>Autonomous:</strong> "You are [Model Name]. You are conversing with: [Other Models]." (no Human)</li>
+                </ul>
+
+                <h3>Supported Providers</h3>
+                <ul>
+                    <li><strong>Anthropic:</strong> Claude models (Sonnet, Opus, Haiku)</li>
+                    <li><strong>OpenAI:</strong> GPT-4, GPT-3.5, etc.</li>
+                    <li><strong>Google:</strong> Gemini models</li>
+                    <li><strong>xAI:</strong> Grok models</li>
+                    <li><strong>OpenRouter:</strong> Access to multiple providers through one API</li>
+                </ul>
+
+                <h3>Advanced Features</h3>
+                <h4>Edit AI Responses</h4>
+                <p>Click "Edit" button below any AI response to manually modify it before continuing the conversation.</p>
+
+                <h4>Regenerate Responses</h4>
+                <p>Click "Regenerate" to have the same model create a different response.</p>
+
+                <h4>Edit User Messages</h4>
+                <p>Click "Edit" button on your own messages to revise and branch the conversation from that point.</p>
+
+                <h4>File Attachments</h4>
+                <p>Click 📎 to attach images. Supported by Anthropic, OpenAI, and Google models.</p>
+
+                <h4>Model-Specific Parameters</h4>
+                <p>Each template includes all available parameters for that provider:</p>
+                <ul>
+                    <li><code>temperature</code>: Randomness (0.0-2.0)</li>
+                    <li><code>max_tokens</code>: Maximum response length</li>
+                    <li><code>top_p</code>: Nucleus sampling</li>
+                    <li><code>beta_headers</code>: Anthropic beta features</li>
+                    <li><code>tools</code>: Function calling config</li>
+                    <li>...and many more</li>
+                </ul>
+
+                <h3>Data Management</h3>
+                <h4>Export Data</h4>
+                <p>Settings → Export Data creates a JSON file with all your models, API keys, prompts, and current conversation.</p>
+
+                <h4>Import Data</h4>
+                <p>Settings → Import Data loads a previously exported JSON file.</p>
+
+                <h4>Clear History</h4>
+                <p>History → Clear All History removes all saved conversations.</p>
+
+                <h3>Tips & Best Practices</h3>
+                <ul>
+                    <li><strong>API Keys:</strong> Create separate API key entries for different projects/purposes</li>
+                    <li><strong>System Prompts:</strong> Save reusable prompts (e.g., "Coding Assistant", "Creative Writer")</li>
+                    <li><strong>Model Names:</strong> Use descriptive names like "GPT-4 Creative" vs "GPT-4 Analytical"</li>
+                    <li><strong>Temperature:</strong> Lower (0.0-0.7) for factual/coding, higher (0.8-1.5) for creative</li>
+                    <li><strong>Modes:</strong> Use Parallel for comparing responses, Serial for debate/discussion</li>
+                </ul>
+
+                <h3>Troubleshooting</h3>
+                <p><strong>Messages not sending:</strong> Check browser console (F12) for errors, verify API key is correct</p>
+                <p><strong>Images not working:</strong> Ensure you're using a vision-capable model (Claude 3+, GPT-4V, Gemini Pro Vision)</p>
+                <p><strong>Mode not updating:</strong> Hard refresh (Ctrl+Shift+R or Cmd+Shift+R)</p>
+                <p><strong>Model deleted:</strong> Can't regenerate old messages from deleted models</p>
+            </div>
         </div>
     </div>
 
