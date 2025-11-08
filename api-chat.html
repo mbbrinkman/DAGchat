@@ -1552,14 +1552,38 @@
                     if (msg.files) {
                         for (const file of msg.files) {
                             if (file.type.startsWith('image/')) {
-                                content.push({
-                                    type: 'image',
-                                    source: {
-                                        type: 'base64',
-                                        media_type: file.type,
+                                if (model.template === 'anthropic') {
+                                    // Anthropic format
+                                    content.push({
+                                        type: 'image',
+                                        source: {
+                                            type: 'base64',
+                                            media_type: file.type,
+                                            data: file.base64
+                                        }
+                                    });
+                                } else if (model.template === 'openai' || model.template === 'xai' || model.template === 'openrouter') {
+                                    // OpenAI-compatible format
+                                    content.push({
+                                        type: 'image_url',
+                                        image_url: {
+                                            url: `data:${file.type};base64,${file.base64}`
+                                        }
+                                    });
+                                } else if (model.template === 'google') {
+                                    // Google format - handled separately below
+                                    content.push({
+                                        type: 'google_image',
+                                        mime_type: file.type,
                                         data: file.base64
-                                    }
-                                });
+                                    });
+                                } else {
+                                    // Unsupported - just mention it
+                                    content.push({
+                                        type: 'text',
+                                        text: `[Attached image: ${file.name}]`
+                                    });
+                                }
                             } else if (file.type === 'application/pdf' && model.template === 'anthropic') {
                                 content.push({
                                     type: 'document',
@@ -2145,11 +2169,11 @@
                     for (const item of msg.content) {
                         if (item.type === 'text') {
                             parts.push({ text: item.text });
-                        } else if (item.type === 'image' && item.source) {
+                        } else if (item.type === 'google_image') {
                             parts.push({
                                 inlineData: {
-                                    mimeType: item.source.media_type,
-                                    data: item.source.data
+                                    mimeType: item.mime_type,
+                                    data: item.data
                                 }
                             });
                         }
