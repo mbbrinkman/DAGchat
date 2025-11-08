@@ -95,6 +95,49 @@
             font-style: italic;
         }
 
+        .typing-indicator {
+            background: #2a2a2a;
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 85%;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.7;
+        }
+
+        .typing-indicator.active {
+            display: flex;
+        }
+
+        .typing-indicator .dot {
+            width: 8px;
+            height: 8px;
+            background: #4a9eff;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-indicator .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.7;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
         .message-content {
             white-space: pre-wrap;
             word-wrap: break-word;
@@ -450,7 +493,14 @@
     </div>
 
     <div id="chat-tab" class="tab-content active">
-        <div id="chat-messages"></div>
+        <div id="chat-messages">
+            <div id="typing-indicator" class="typing-indicator">
+                <span style="margin-right: 8px;">AI is thinking</span>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
         <div id="chat-input-area">
             <div class="attached-files" id="attached-files"></div>
             <div class="input-row">
@@ -751,6 +801,23 @@
             localStorage.setItem('selectedModelIndices', JSON.stringify(selectedModelIndices));
             localStorage.setItem('multiModelMode', multiModelMode);
             localStorage.setItem('rotationIndex', rotationIndex.toString());
+        }
+
+        function showTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) {
+                indicator.classList.add('active');
+                // Scroll to bottom to show the indicator
+                const chatMessages = document.getElementById('chat-messages');
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) {
+                indicator.classList.remove('active');
+            }
         }
 
         function setupEventListeners() {
@@ -1433,6 +1500,7 @@
             // Start streaming response
             isStreaming = true;
             document.getElementById('send-btn').disabled = true;
+            showTypingIndicator();
 
             try {
                 if (multiModelMode === 'parallel') {
@@ -1444,6 +1512,7 @@
                 }
             } catch (error) {
                 console.error('Error:', error);
+                hideTypingIndicator();
                 const errorMessage = {
                     role: 'assistant',
                     content: 'Error: ' + error.message,
@@ -1455,11 +1524,13 @@
 
             isStreaming = false;
             document.getElementById('send-btn').disabled = false;
+            hideTypingIndicator();
             saveToStorage();
         }
 
         async function handleParallelMode() {
             // All models answer independently in parallel
+            hideTypingIndicator();
             const promises = selectedModelIndices.map(async (modelIndex) => {
                 const model = models[modelIndex];
                 const assistantMessage = {
@@ -1479,6 +1550,7 @@
 
         async function handleSerialMode() {
             // Models answer sequentially, each seeing previous responses
+            hideTypingIndicator();
             for (let i = 0; i < selectedModelIndices.length; i++) {
                 const modelIndex = selectedModelIndices[i];
                 const model = models[modelIndex];
@@ -1501,6 +1573,7 @@
 
         async function handleRotatingMode() {
             // Serial mode with rotating order
+            hideTypingIndicator();
             const orderedIndices = [...selectedModelIndices];
 
             // Rotate based on rotationIndex
