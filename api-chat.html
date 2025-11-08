@@ -1409,6 +1409,16 @@
             document.getElementById('send-btn').disabled = true;
             renderConversation(); // Show typing indicator
 
+            // Add debug status message
+            const statusMessage = {
+                role: 'assistant',
+                content: `🔄 Starting response... (Mode: ${multiModelMode}, Models: ${selectedModelIndices.length})`,
+                timestamp: Date.now(),
+                isStatus: true
+            };
+            currentConversation.push(statusMessage);
+            renderConversation();
+
             try {
                 if (multiModelMode === 'parallel') {
                     await handleParallelMode();
@@ -1417,11 +1427,23 @@
                 } else if (multiModelMode === 'rotating') {
                     await handleRotatingMode();
                 }
+                // Remove status message on success
+                const statusIndex = currentConversation.findIndex(m => m.isStatus);
+                if (statusIndex !== -1) {
+                    currentConversation.splice(statusIndex, 1);
+                }
             } catch (error) {
                 console.error('Error:', error);
+                // Remove status message
+                const statusIndex = currentConversation.findIndex(m => m.isStatus);
+                if (statusIndex !== -1) {
+                    currentConversation.splice(statusIndex, 1);
+                }
+
+                // Add detailed error message
                 const errorMessage = {
                     role: 'assistant',
-                    content: 'Error: ' + error.message,
+                    content: `❌ ERROR: ${error.message}\n\nDetails:\n- Check your API key in Settings\n- Verify model is configured correctly\n- Make sure you have internet connection\n\nFull error: ${error.stack || error.toString()}`,
                     timestamp: Date.now()
                 };
                 currentConversation.push(errorMessage);
@@ -1758,10 +1780,17 @@
 
             const apiKey = resolveApiKey(model);
 
+            // Validate API key
+            if (!apiKey || apiKey.includes('your-')) {
+                throw new Error('Invalid or missing API key. Please add a valid OpenRouter API key in Settings.');
+            }
+
             // Build headers
             const headers = {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
+                'Authorization': `Bearer ${apiKey}`,
+                'HTTP-Referer': window.location.href,
+                'X-Title': 'OpenRouter Multi-Model Chat'
             };
 
             // Add custom headers (OpenRouter recommends HTTP-Referer and X-Title)
@@ -1771,14 +1800,24 @@
 
             let response;
             try {
+                // Add timeout to prevent hanging
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
                 response = await fetch(model.endpoint, {
                     method: 'POST',
                     headers: headers,
-                    body: JSON.stringify(body)
+                    body: JSON.stringify(body),
+                    signal: controller.signal
                 });
+
+                clearTimeout(timeoutId);
             } catch (e) {
                 console.error('Fetch error:', e);
-                throw new Error(`Network error: ${e.message}. Check your internet connection and API endpoint.`);
+                if (e.name === 'AbortError') {
+                    throw new Error('Request timed out after 30 seconds. Check your internet connection.');
+                }
+                throw new Error(`Network error: ${e.message}. Check your internet connection and make sure the endpoint is correct.`);
             }
 
             if (!response.ok) {
@@ -1786,10 +1825,29 @@
                 try {
                     errorText = await response.text();
                     console.error('API error response:', errorText);
+
+                    // Try to parse as JSON for better error message
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        if (errorJson.error && errorJson.error.message) {
+                            errorText = errorJson.error.message;
+                        }
+                    } catch (e) {
+                        // Not JSON, use as-is
+                    }
                 } catch (e) {
                     errorText = 'Could not read error response';
                 }
-                throw new Error(`API error ${response.status}: ${errorText}`);
+
+                if (response.status === 401) {
+                    throw new Error(`Authentication failed. Your API key may be invalid or expired. Status: ${response.status}`);
+                } else if (response.status === 402) {
+                    throw new Error(`Insufficient credits. Please add credits to your OpenRouter account. Status: ${response.status}`);
+                } else if (response.status === 429) {
+                    throw new Error(`Rate limit exceeded. Please wait a moment and try again. Status: ${response.status}`);
+                } else {
+                    throw new Error(`API error ${response.status}: ${errorText}`);
+                }
             }
 
             const reader = response.body.getReader();
