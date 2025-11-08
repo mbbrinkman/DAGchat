@@ -1476,21 +1476,28 @@
             if (selectedModelIndices.length > 1 && model.name) {
                 systemPrompt = `You are ${model.name}. This is your identity in this conversation.\n\n`;
 
-                // Build list of who they're conversing with
+                // Build list of who they're conversing with based on mode
                 const conversants = [];
 
-                // Add Human to the list if NOT in autonomous mode
-                if (multiModelMode !== 'autonomous') {
+                if (multiModelMode === 'parallel') {
+                    // In parallel mode, each model only responds to human independently
                     conversants.push('Human');
+                } else if (multiModelMode === 'autonomous') {
+                    // In autonomous mode, models only converse with each other (no human)
+                    const otherModels = selectedModelIndices
+                        .map(idx => models[idx])
+                        .filter(m => m.name !== model.name)
+                        .map(m => m.name);
+                    conversants.push(...otherModels);
+                } else {
+                    // In serial/rotating modes, models see human AND other models
+                    conversants.push('Human');
+                    const otherModels = selectedModelIndices
+                        .map(idx => models[idx])
+                        .filter(m => m.name !== model.name)
+                        .map(m => m.name);
+                    conversants.push(...otherModels);
                 }
-
-                // Add other models
-                const otherModels = selectedModelIndices
-                    .map(idx => models[idx])
-                    .filter(m => m.name !== model.name)
-                    .map(m => m.name);
-
-                conversants.push(...otherModels);
 
                 if (conversants.length > 0) {
                     systemPrompt += `You are conversing with: ${conversants.join(', ')}.\n\n`;
