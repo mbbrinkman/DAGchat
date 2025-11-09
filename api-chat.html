@@ -512,6 +512,7 @@
                 <div class="input-controls">
                     <button class="file-upload-btn" onclick="document.getElementById('file-input').click()">📎</button>
                     <button class="model-select" id="model-picker-btn">Select Models</button>
+                    <button class="model-select" onclick="newChat()">New Chat</button>
                 </div>
                 <textarea id="message-input" placeholder="Type a message... (Click Send button to send)"></textarea>
                 <div class="send-controls">
@@ -547,7 +548,12 @@
         <div class="history-container">
             <div class="settings-section">
                 <h3>Conversation History</h3>
-                <button class="primary" onclick="clearHistory()">Clear All History</button>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="primary" onclick="exportConversation()">Export History</button>
+                    <button class="primary" onclick="document.getElementById('import-history-input').click()">Import History</button>
+                    <button class="primary" onclick="clearHistory()">Clear All History</button>
+                </div>
+                <input type="file" id="import-history-input" accept=".json" style="display: none;" onchange="importHistory(event)">
             </div>
             <div id="history-list"></div>
         </div>
@@ -671,7 +677,7 @@
                     <li><code>stop</code>: Array of stop sequences</li>
                     <li><code>tools</code>: Function calling definitions</li>
                     <li><code>tool_choice</code>: Force or disable tool use</li>
-                    <li><code>reasoning</code>: Enable extended thinking/reasoning mode</li>
+                    <li><code>reasoning</code>: Enable extended thinking/reasoning mode with {"effort": "high"|"medium"|"low"} or {"max_tokens": number}</li>
                     <li><code>provider</code>: Force specific provider (e.g., "Anthropic")</li>
                     <li><code>models</code>: Fallback model array</li>
                     <li><code>route</code>: "fallback" to use model list</li>
@@ -934,7 +940,7 @@
   "tools": null,
   "tool_choice": null,
   "reasoning": {
-    "enabled": false
+    "effort": "medium"
   },
   "provider": null,
   "models": null,
@@ -1945,11 +1951,9 @@
             if (model.tool_choice) {
                 body.tool_choice = model.tool_choice;
             }
-            if (model.reasoning?.enabled) {
-                body.reasoning = {
-                    ...model.reasoning,
-                    stream: true  // Enable streaming of reasoning when enabled
-                };
+            if (model.reasoning) {
+                // Add reasoning parameter (effort: "high" | "medium" | "low" or max_tokens: number)
+                body.reasoning = model.reasoning;
             }
 
             // OpenRouter-specific options
@@ -2338,6 +2342,20 @@
             `;
         }
 
+        function newChat() {
+            if (currentConversation.length > 0) {
+                if (!confirm('Start a new chat? Current conversation will be cleared.')) return;
+            }
+            currentConversation = [];
+            attachedFiles = [];
+            editingMessageIndex = null;
+            saveToStorage();
+            renderConversation();
+            renderHistory();
+            renderAttachedFiles();
+            document.getElementById('message-input').value = '';
+        }
+
         function clearConversation() {
             if (!confirm('Clear current conversation?')) return;
             currentConversation = [];
@@ -2356,6 +2374,35 @@
                 timestamp: new Date().toISOString()
             };
             downloadJSON(data, `conversation-${Date.now()}.json`);
+        }
+
+        function importHistory(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+
+                    if (data.conversation && Array.isArray(data.conversation)) {
+                        // Replace current conversation with imported one
+                        currentConversation = data.conversation;
+                        saveToStorage();
+                        renderConversation();
+                        renderHistory();
+                        alert('History imported successfully!');
+                        // Switch to chat tab to see the imported conversation
+                        switchTab('chat');
+                    } else {
+                        alert('Invalid history file format. Expected a conversation array.');
+                    }
+                } catch (e) {
+                    alert('Error importing history: ' + e.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
         }
 
         function exportData() {
