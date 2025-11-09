@@ -1584,6 +1584,7 @@
                     role: 'assistant',
                     content: '',
                     thinking: '',
+                    images: [],
                     modelName: model.name,
                     timestamp: Date.now()
                 };
@@ -1604,6 +1605,7 @@
                     role: 'assistant',
                     content: '',
                     thinking: '',
+                    images: [],
                     modelName: model.name,
                     timestamp: Date.now()
                 };
@@ -1634,6 +1636,7 @@
                     role: 'assistant',
                     content: '',
                     thinking: '',
+                    images: [],
                     modelName: model.name,
                     timestamp: Date.now()
                 };
@@ -1995,6 +1998,23 @@
                                 assistantMessage.content += delta;
                                 renderConversation();
                             }
+
+                            // Check for images in the response (for non-streaming or final chunk)
+                            const message = parsed.choices?.[0]?.message;
+                            if (message?.images && message.images.length > 0) {
+                                if (!assistantMessage.images) {
+                                    assistantMessage.images = [];
+                                }
+                                // Add any new images that aren't already present
+                                for (const img of message.images) {
+                                    if (img.image_url?.url && !assistantMessage.images.find(i => i.url === img.image_url.url)) {
+                                        assistantMessage.images.push({
+                                            url: img.image_url.url
+                                        });
+                                    }
+                                }
+                                renderConversation();
+                            }
                         } catch (e) {
                             console.error('Error parsing SSE:', e, 'Line:', line);
                         }
@@ -2051,6 +2071,13 @@
                     }
 
                     contentHtml += `<div class="message-content">${rendered}</div>`;
+
+                    // Render received images
+                    if (msg.images && msg.images.length > 0) {
+                        for (const image of msg.images) {
+                            contentHtml += `<div class="file-preview"><img src="${escapeHtml(image.url)}" alt="Generated image" style="max-width: 100%; height: auto; border-radius: 6px; margin-top: 12px;"></div>`;
+                        }
+                    }
 
                     // Add edit and regenerate buttons
                     contentHtml += `
