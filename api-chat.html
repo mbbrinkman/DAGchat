@@ -843,7 +843,11 @@
             // Autonomous button
             document.getElementById('auto-btn').addEventListener('click', toggleAutonomous);
 
-            // Pre-populate OpenRouter config on page load
+            // Pre-populate OpenRouter config
+            updateModelConfigTemplate();
+        }
+
+        function updateModelConfigTemplate() {
             const configTextarea = document.getElementById('new-model-config');
             const openrouterKeys = apiKeys.filter(k => k.provider === 'openrouter');
             const apiKeyRef = openrouterKeys.length > 0
@@ -889,6 +893,7 @@
                 updateModelsList();
                 updateApiKeysList();
                 updatePromptsList();
+                updateModelConfigTemplate();
             }
         }
 
@@ -1147,6 +1152,7 @@
             apiKeys.push(apiKey);
             saveToStorage();
             updateApiKeysList();
+            updateModelConfigTemplate();  // Update model template with new key
 
             // Clear form
             document.getElementById('new-key-name').value = '';
@@ -1160,6 +1166,7 @@
             apiKeys = apiKeys.filter(k => k.id !== id);
             saveToStorage();
             updateApiKeysList();
+            updateModelConfigTemplate();  // Update template after deleting key
         }
 
         function updateApiKeysList() {
