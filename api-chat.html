@@ -697,6 +697,22 @@
                 <div id="api-keys-list"></div>
             </div>
             <div class="settings-section">
+                <h3>Browse OpenRouter Models</h3>
+                <p style="font-size: 13px; color: #888; margin-bottom: 12px;">Fetch and search available models from OpenRouter</p>
+                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <button class="primary" onclick="fetchOpenRouterModels()">Load Models</button>
+                    <input type="text" id="model-search" placeholder="Search models..." style="flex: 1;" oninput="filterModels()">
+                    <select id="model-sort" onchange="sortAndDisplayModels()">
+                        <option value="date">Sort by Date</option>
+                        <option value="name">Sort by Name</option>
+                        <option value="context">Sort by Context</option>
+                    </select>
+                </div>
+                <div id="models-browser" style="max-height: 400px; overflow-y: auto; background: #1a1a1a; padding: 12px; border-radius: 6px; display: none;">
+                    <p style="color: #888;">Click "Load Models" to browse available models</p>
+                </div>
+            </div>
+            <div class="settings-section">
                 <h3>Add New Model</h3>
                 <input type="text" id="new-model-name" placeholder="Model name (e.g., Claude 3.5 Sonnet)" style="margin-bottom: 8px;">
                 <textarea id="new-model-config" placeholder="Model configuration (JSON)..." style="min-height: 250px;"></textarea>
@@ -730,6 +746,8 @@
         let rotationIndex = 0;
         let isAutonomousRunning = false;
         let autonomousRounds = 0;
+        let availableModels = [];
+        let filteredModels = [];
 
         // Initialize
         function init() {
@@ -1311,6 +1329,127 @@
                 `;
                 list.appendChild(div);
             });
+        }
+
+        async function fetchOpenRouterModels() {
+            const browser = document.getElementById('models-browser');
+            browser.style.display = 'block';
+            browser.innerHTML = '<p style="color: #888;">Loading models from OpenRouter...</p>';
+
+            try {
+                const response = await fetch('https://openrouter.ai/api/v1/models');
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch models: ${response.status}`);
+                }
+
+                const data = await response.json();
+                availableModels = data.data || [];
+                filteredModels = [...availableModels];
+
+                sortAndDisplayModels();
+            } catch (error) {
+                browser.innerHTML = `<p style="color: #ff6b6b;">Error loading models: ${escapeHtml(error.message)}</p>`;
+                console.error('Error fetching models:', error);
+            }
+        }
+
+        function filterModels() {
+            const searchTerm = document.getElementById('model-search').value.toLowerCase();
+
+            if (!searchTerm) {
+                filteredModels = [...availableModels];
+            } else {
+                filteredModels = availableModels.filter(model => {
+                    const searchText = `${model.id} ${model.name || ''} ${model.description || ''}`.toLowerCase();
+                    return searchText.includes(searchTerm);
+                });
+            }
+
+            sortAndDisplayModels();
+        }
+
+        function sortAndDisplayModels() {
+            const sortBy = document.getElementById('model-sort').value;
+
+            // Sort
+            filteredModels.sort((a, b) => {
+                if (sortBy === 'date') {
+                    const dateA = new Date(a.created || 0);
+                    const dateB = new Date(b.created || 0);
+                    return dateB - dateA; // Newest first
+                } else if (sortBy === 'name') {
+                    return (a.name || a.id).localeCompare(b.name || b.id);
+                } else if (sortBy === 'context') {
+                    return (b.context_length || 0) - (a.context_length || 0); // Largest first
+                }
+                return 0;
+            });
+
+            displayModels();
+        }
+
+        function displayModels() {
+            const browser = document.getElementById('models-browser');
+
+            if (filteredModels.length === 0) {
+                browser.innerHTML = '<p style="color: #888;">No models found matching your search.</p>';
+                return;
+            }
+
+            let html = `<div style="font-size: 13px; color: #888; margin-bottom: 12px;">Found ${filteredModels.length} models. Click to select.</div>`;
+
+            filteredModels.forEach(model => {
+                const pricing = model.pricing || {};
+                const promptPrice = pricing.prompt ? `$${(parseFloat(pricing.prompt) * 1000000).toFixed(2)}/M` : 'N/A';
+                const completionPrice = pricing.completion ? `$${(parseFloat(pricing.completion) * 1000000).toFixed(2)}/M` : 'N/A';
+                const contextLength = model.context_length ? `${(model.context_length / 1000).toFixed(0)}K` : 'N/A';
+                const created = model.created ? new Date(model.created * 1000).toLocaleDateString() : 'Unknown';
+
+                html += `
+                    <div style="background: #2a2a2a; padding: 12px; border-radius: 6px; margin-bottom: 8px; cursor: pointer; border: 2px solid transparent;"
+                         onclick="selectModel('${escapeHtml(model.id)}', '${escapeHtml(model.name || model.id)}')"
+                         onmouseover="this.style.borderColor='#4a9eff'"
+                         onmouseout="this.style.borderColor='transparent'">
+                        <div style="font-weight: 600; color: #e0e0e0; margin-bottom: 4px;">${escapeHtml(model.name || model.id)}</div>
+                        <div style="font-size: 12px; color: #888; font-family: monospace; margin-bottom: 6px;">${escapeHtml(model.id)}</div>
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">${escapeHtml(model.description || 'No description')}</div>
+                        <div style="font-size: 11px; color: #666; display: flex; gap: 12px;">
+                            <span>Context: ${contextLength}</span>
+                            <span>Prompt: ${promptPrice}</span>
+                            <span>Completion: ${completionPrice}</span>
+                            <span>Released: ${created}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            browser.innerHTML = html;
+        }
+
+        function selectModel(modelId, modelName) {
+            // Populate the Add New Model form
+            document.getElementById('new-model-name').value = modelName;
+
+            // Get the current config template
+            const configTextarea = document.getElementById('new-model-config');
+            let currentConfig = configTextarea.value;
+
+            // Replace the model_id in the template
+            currentConfig = currentConfig.replace(
+                /"model_id":\s*"[^"]*"/,
+                `"model_id": "${modelId}"`
+            );
+
+            configTextarea.value = currentConfig;
+
+            // Scroll to the Add New Model section
+            document.querySelector('#new-model-name').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Flash the textarea to show it was updated
+            configTextarea.style.border = '2px solid #4a9eff';
+            setTimeout(() => {
+                configTextarea.style.border = '';
+            }, 1000);
         }
 
         async function handleFileUpload(e) {
