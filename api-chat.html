@@ -549,11 +549,22 @@
                 <h3>Quick Start</h3>
                 <ol>
                     <li><strong>Add OpenRouter API Key:</strong> Go to Settings → Add API Key section (get your key from openrouter.ai)</li>
-                    <li><strong>Add Models:</strong> Go to Settings → Add New Model, customize the config with your desired model</li>
+                    <li><strong>Browse Models:</strong> Go to Settings → Browse OpenRouter Models → Click "Load Models" to see all available models</li>
+                    <li><strong>Add Models:</strong> Click any model from the browser to auto-populate the Add New Model form, or manually add model configuration</li>
                     <li><strong>Select Models:</strong> Click "Select Models" button, check the models you want to use</li>
                     <li><strong>Choose Mode:</strong> In model picker, select Parallel/Serial/Rotating/Autonomous</li>
                     <li><strong>Chat:</strong> Type your message and click Send!</li>
                 </ol>
+
+                <h3>Model Browser</h3>
+                <p>The Browse OpenRouter Models section fetches the live model catalog from OpenRouter:</p>
+                <ul>
+                    <li><strong>Load Models:</strong> Click to fetch all available models</li>
+                    <li><strong>Search:</strong> Filter models by name, ID, or description</li>
+                    <li><strong>Sort:</strong> Sort by date (newest first), name, or context length</li>
+                    <li><strong>Select:</strong> Click any model to auto-fill the Add New Model form</li>
+                </ul>
+                <p>Each model shows context length, pricing, and release date to help you choose.</p>
 
                 <h3>Model Configuration</h3>
                 <p>Each model is defined by a JSON configuration with NO outer braces. Example:</p>
@@ -619,6 +630,16 @@
 
                 <h4>File Attachments</h4>
                 <p>Click 📎 to attach images. Support varies by model - most vision-capable models on OpenRouter support image attachments.</p>
+
+                <h4>Image Generation</h4>
+                <p>The application supports receiving images from image generation models:</p>
+                <ul>
+                    <li>Use models with "image" in their output modalities (check model browser or openrouter.ai/models)</li>
+                    <li>Request image generation in your message (e.g., "draw a sunset")</li>
+                    <li>Generated images appear automatically in the response</li>
+                    <li>Multiple images per response are supported</li>
+                    <li>Images are displayed inline below the text content</li>
+                </ul>
 
                 <h4>OpenRouter Parameters (All Optional)</h4>
                 <p>Customize your model behavior with these parameters (set to null to use defaults):</p>

@@ -18,7 +18,9 @@ https://mbbrinkman.github.io/my_api_chat/api-chat.html
 - Real-time streaming responses
 - Message and response editing
 - Conversation branching (edit past messages to explore alternatives)
-- Image attachments (vision model support varies by model)
+- Image attachments for sending to vision models
+- Image generation support (receive images from image generation models)
+- Model browser (fetch, search, and sort all available OpenRouter models)
 - Configurable system prompts (per-model or global override)
 - Local browser storage for conversations, models, and API keys
 - Export/import functionality for data backup
@@ -34,8 +36,20 @@ https://mbbrinkman.github.io/my_api_chat/api-chat.html
 1. Open the application at https://mbbrinkman.github.io/my_api_chat/api-chat.html
 2. Create an OpenRouter account and obtain an API key at https://openrouter.ai/keys
 3. In Settings, add your API key
-4. Add a model configuration (template auto-populates with your API key)
+4. Browse available models using the model browser, or manually add a model configuration
 5. Select your model(s) and start chatting
+
+### Using the Model Browser
+
+1. Go to Settings tab
+2. Scroll to "Browse OpenRouter Models"
+3. Click "Load Models" to fetch the live catalog
+4. Search by name, ID, or description
+5. Sort by date (newest first), name, or context length
+6. Click any model to auto-populate the Add New Model form
+7. Edit configuration if needed and click "Add Model"
+
+The browser displays context length, pricing per million tokens, and release date for each model.
 
 ## OpenRouter Integration
 
@@ -60,6 +74,18 @@ Example model IDs:
 ## Privacy
 
 All data is stored locally in your browser. No information is sent to any server except OpenRouter API calls for model responses. API keys are stored in browser localStorage.
+
+## Image Generation
+
+The application supports receiving images from image generation models on OpenRouter:
+
+1. Add a model with "image" in its output modalities (filter by output modality on openrouter.ai/models)
+2. Request image generation in your message (e.g., "generate an image of a sunset")
+3. Generated images appear automatically in the conversation
+4. Multiple images per response are supported
+5. Images are displayed inline with full-width responsive sizing
+
+Images are returned as base64-encoded data URLs and stored in the conversation history.
 
 ## Configuration Parameters
 
