@@ -917,7 +917,9 @@
   "stop": null,
   "tools": null,
   "tool_choice": null,
-  "reasoning": null,
+  "reasoning": {
+    "enabled": false
+  },
   "provider": null,
   "models": null,
   "route": null,
@@ -1898,8 +1900,11 @@
             if (model.tool_choice) {
                 body.tool_choice = model.tool_choice;
             }
-            if (model.reasoning) {
-                body.reasoning = model.reasoning;
+            if (model.reasoning?.enabled) {
+                body.reasoning = {
+                    ...model.reasoning,
+                    stream: true  // Enable streaming of reasoning when enabled
+                };
             }
 
             // OpenRouter-specific options
@@ -2013,9 +2018,17 @@
 
                         try {
                             const parsed = JSON.parse(data);
-                            const delta = parsed.choices?.[0]?.delta?.content;
-                            if (delta) {
-                                assistantMessage.content += delta;
+                            const delta = parsed.choices?.[0]?.delta;
+
+                            // Handle regular content
+                            if (delta?.content) {
+                                assistantMessage.content += delta.content;
+                                renderConversation();
+                            }
+
+                            // Handle reasoning/thinking content when streaming
+                            if (delta?.reasoning) {
+                                assistantMessage.thinking += delta.reasoning;
                                 renderConversation();
                             }
 
