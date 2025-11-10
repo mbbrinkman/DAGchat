@@ -1438,6 +1438,9 @@
                 div.className = 'prompt-item';
                 div.innerHTML = `
                     <h4>${escapeHtml(key.name)}</h4>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                        ID: ${escapeHtml(key.id)}
+                    </div>
                     <div style="font-size: 13px; color: #aaa; margin-bottom: 4px;">
                         <strong>Provider:</strong> ${escapeHtml(key.provider)}<br>
                         <strong>Key:</strong> ${escapeHtml(key.value.substring(0, 10))}...${escapeHtml(key.value.substring(key.value.length - 4))}
