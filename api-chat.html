@@ -1289,6 +1289,18 @@
                 return;
             }
 
+            // If conversation is empty, add a starter message for autonomous mode
+            if (currentConversation.length === 0) {
+                const starterMessage = {
+                    role: 'user',
+                    content: 'Begin your conversation.',
+                    timestamp: Date.now()
+                };
+                currentConversation.push(starterMessage);
+                saveToStorage();
+                renderConversation();
+            }
+
             isAutonomousRunning = true;
             autonomousRounds = 0;
             autoBtn.textContent = 'Stop Auto';
