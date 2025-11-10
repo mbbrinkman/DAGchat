@@ -582,7 +582,7 @@
             <div class="input-row">
                 <input type="file" id="file-input" multiple accept="*/*">
                 <div class="input-controls">
-                    <button class="file-upload-btn" onclick="document.getElementById('file-input').click()">📎</button>
+                    <button class="file-upload-btn" onclick="document.getElementById('file-input').click()">Attach</button>
                     <button class="model-select" id="model-picker-btn">Select Models</button>
                     <button class="model-select" onclick="newChat()">New Chat</button>
                 </div>
@@ -747,7 +747,7 @@
                 <p>Click "Edit" button on your own messages to revise and branch the conversation from that point.</p>
 
                 <h4>File Attachments</h4>
-                <p>Click 📎 to attach images. Support varies by model - most vision-capable models on OpenRouter support image attachments.</p>
+                <p>Click the "Attach" button to attach images. Support varies by model - most vision-capable models on OpenRouter support image attachments.</p>
 
                 <h4>Image Generation</h4>
                 <p>The application supports receiving images from image generation models:</p>
@@ -808,6 +808,12 @@
                 <p><strong>Images not working:</strong> Ensure you're using a vision-capable model (Claude 3+, GPT-4V, Gemini Pro Vision)</p>
                 <p><strong>Mode not updating:</strong> Hard refresh (Ctrl+Shift+R or Cmd+Shift+R)</p>
                 <p><strong>Model deleted:</strong> Can't regenerate old messages from deleted models</p>
+
+                <h3>Source Code & License</h3>
+                <p>This application is open source and available on GitHub:</p>
+                <p><a href="https://github.com/mbbrinkman/my_api_chat" target="_blank" style="color: #4a9eff;">https://github.com/mbbrinkman/my_api_chat</a></p>
+                <p><strong>License:</strong> CC0 (Public Domain)</p>
+                <p>You are free to use, modify, distribute, and do basically whatever you want with this code. No attribution required.</p>
             </div>
         </div>
     </div>
@@ -1816,7 +1822,7 @@
                 // Add user-friendly error message
                 const errorMessage = {
                     role: 'assistant',
-                    content: `❌ Error: ${error.message}\n\nTroubleshooting:\n• Check your API key in Settings\n• Verify your model configuration\n• Ensure you have internet connection`,
+                    content: `Error: ${error.message}\n\nTroubleshooting:\n• Check your API key in Settings\n• Verify your model configuration\n• Ensure you have internet connection`,
                     timestamp: Date.now()
                 };
                 currentConversation.push(errorMessage);
@@ -2332,7 +2338,7 @@
                             } else if (file.type.startsWith('video/')) {
                                 contentHtml += `<div class="file-preview"><video controls src="data:${file.type};base64,${file.base64}"></video></div>`;
                             } else {
-                                contentHtml += `<div class="file-info">📎 ${escapeHtml(file.name)} (${formatFileSize(file.size)})</div>`;
+                                contentHtml += `<div class="file-info">${escapeHtml(file.name)} (${formatFileSize(file.size)})</div>`;
                             }
                         }
                     }
@@ -2372,7 +2378,7 @@
                         const thinkingId = `thinking-${index}`;
                         contentHtml += `
                             <div class="thinking-toggle" onclick="toggleThinking('${thinkingId}')">
-                                🧠 Chain of Thought (click to ${msg.thinkingCollapsed !== false ? 'expand' : 'collapse'})
+                                Chain of Thought (click to ${msg.thinkingCollapsed !== false ? 'expand' : 'collapse'})
                             </div>
                             <div id="${thinkingId}" class="thinking-content${msg.thinkingCollapsed !== false ? ' collapsed' : ''}">
                                 ${escapeHtml(msg.thinking)}
