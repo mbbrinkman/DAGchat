@@ -1306,8 +1306,9 @@
             autoBtn.textContent = 'Stop Auto';
             autoBtn.style.background = '#ff4a4a';
 
-            // Run for iterationCount rounds (or until stopped manually)
-            while (isAutonomousRunning && autonomousRounds < iterationCount) {
+            // Run for iterationCount rounds per model (or until stopped manually)
+            // Total rounds = iterationCount * number of models
+            while (isAutonomousRunning && autonomousRounds < (iterationCount * selectedModelIndices.length)) {
                 try {
                     await handleAutonomousRound();
                     autonomousRounds++;
