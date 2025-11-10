@@ -1984,12 +1984,38 @@
             return model.api_key;
         }
 
+        // Sanitize model names to prevent prompt injection
+        function sanitizeModelName(name) {
+            if (!name || typeof name !== 'string') {
+                return 'Unknown Model';
+            }
+
+            // Remove control characters and normalize whitespace
+            let sanitized = name
+                .replace(/[\r\n\t]+/g, ' ')  // Replace newlines and tabs with spaces
+                .replace(/\s+/g, ' ')         // Collapse multiple spaces
+                .trim();
+
+            // Limit length to prevent abuse
+            if (sanitized.length > 100) {
+                sanitized = sanitized.substring(0, 100) + '...';
+            }
+
+            // If empty after sanitization, use default
+            if (!sanitized) {
+                return 'Unknown Model';
+            }
+
+            return sanitized;
+        }
+
         function buildSystemPrompt(model) {
             let systemPrompt = '';
 
             // Add model identity information if in multi-model mode
             if (selectedModelIndices.length > 1 && model.name) {
-                systemPrompt = `You are ${model.name}. This is your identity in this conversation.\n\n`;
+                const sanitizedName = sanitizeModelName(model.name);
+                systemPrompt = `You are ${sanitizedName}. This is your identity in this conversation.\n\n`;
 
                 // Build list of who they're conversing with based on mode
                 const conversants = [];
@@ -2002,7 +2028,7 @@
                     const otherModels = selectedModelIndices
                         .map(idx => models[idx])
                         .filter(m => m.name !== model.name)
-                        .map(m => m.name);
+                        .map(m => sanitizeModelName(m.name));
                     conversants.push(...otherModels);
                 } else {
                     // In serial/rotating modes, models see human AND other models
@@ -2010,7 +2036,7 @@
                     const otherModels = selectedModelIndices
                         .map(idx => models[idx])
                         .filter(m => m.name !== model.name)
-                        .map(m => m.name);
+                        .map(m => sanitizeModelName(m.name));
                     conversants.push(...otherModels);
                 }
 
@@ -2106,7 +2132,8 @@
                     // Add model name prefix if converting to user and model has a name
                     let content = msg.content;
                     if (role === 'user' && msg.modelName) {
-                        content = `[${msg.modelName}]: ${msg.content}`;
+                        const sanitizedModelName = sanitizeModelName(msg.modelName);
+                        content = `[${sanitizedModelName}]: ${msg.content}`;
                     }
 
                     messages.push({
