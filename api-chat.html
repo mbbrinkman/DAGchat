@@ -2236,7 +2236,7 @@
                         role: role,
                         content: content
                     });
-                    lastRole = 'assistant';
+                    lastRole = role; // Track the actual role sent to API, not the original role
                 }
             }
 
