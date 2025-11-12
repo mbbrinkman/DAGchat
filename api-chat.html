@@ -616,6 +616,11 @@
                         <span style="font-size: 12px; color: #888; margin-left: 8px;">How many times models should reply</span>
                     </div>
                     <div class="mode-selector" style="margin-top: 10px;">
+                        <label for="response-delay">Response Delay:</label>
+                        <input type="number" id="response-delay" min="0" max="10000" step="100" value="1000" style="width: 80px; padding: 4px 8px; background: #2a2a2a; border: 1px solid #4a4a4a; color: #e0e0e0; border-radius: 4px;">
+                        <span style="font-size: 12px; color: #888; margin-left: 8px;">ms delay between responses (Serial/Rotating/Autonomous)</span>
+                    </div>
+                    <div class="mode-selector" style="margin-top: 10px;">
                         <label for="history-limit">Message History Limit:</label>
                         <input type="number" id="history-limit" min="0" max="1000" value="0" style="width: 80px; padding: 4px 8px; background: #2a2a2a; border: 1px solid #4a4a4a; color: #e0e0e0; border-radius: 4px;">
                         <span style="font-size: 12px; color: #888; margin-left: 8px;">0 = all messages</span>
@@ -907,6 +912,7 @@
         let iterationCount = 1;
         let messageHistoryLimit = 0; // 0 means all messages
         let includeFilesInHistory = false;
+        let responseDelay = 1000; // Delay in ms between responses in serial/rotating/autonomous modes
         let availableModels = [];
         let filteredModels = [];
         let currentAbortControllers = [];
@@ -985,6 +991,7 @@
                 iterationCount = await loadData('iterationCount', 1);
                 messageHistoryLimit = await loadData('messageHistoryLimit', 0);
                 includeFilesInHistory = await loadData('includeFilesInHistory', false);
+                responseDelay = await loadData('responseDelay', 1000);
                 conversationHistory = await loadData('conversationHistory', []);
             } catch (e) {
                 console.error('Error loading from IndexedDB:', e);
@@ -1005,6 +1012,7 @@
                     saveData('iterationCount', iterationCount),
                     saveData('messageHistoryLimit', messageHistoryLimit),
                     saveData('includeFilesInHistory', includeFilesInHistory),
+                    saveData('responseDelay', responseDelay),
                     saveData('conversationHistory', conversationHistory)
                 ]);
             } catch (e) {
@@ -1060,6 +1068,20 @@
                         saveToStorage();
                     } else {
                         e.target.value = iterationCount;
+                    }
+                });
+            }
+
+            // Response delay input
+            const delayInput = document.getElementById('response-delay');
+            if (delayInput) {
+                delayInput.addEventListener('change', (e) => {
+                    const value = parseInt(e.target.value);
+                    if (value >= 0 && value <= 10000) {
+                        responseDelay = value;
+                        saveToStorage();
+                    } else {
+                        e.target.value = responseDelay;
                     }
                 });
             }
@@ -1254,6 +1276,12 @@
                 iterationInput.value = iterationCount;
             }
 
+            // Set the response delay
+            const delayInput = document.getElementById('response-delay');
+            if (delayInput) {
+                delayInput.value = responseDelay;
+            }
+
             // Set the history limit
             const historyLimitInput = document.getElementById('history-limit');
             if (historyLimitInput) {
@@ -1332,8 +1360,10 @@
                     await handleAutonomousRound();
                     autonomousRounds++;
 
-                    // Small delay between rounds
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    // Delay between rounds (configurable)
+                    if (responseDelay > 0 && autonomousRounds < (iterationCount * selectedModelIndices.length)) {
+                        await new Promise(resolve => setTimeout(resolve, responseDelay));
+                    }
                 } catch (error) {
                     console.error('Autonomous error:', error);
                     isAutonomousRunning = false;
@@ -1919,6 +1949,11 @@
                     // Save and render after each model completes so next model sees the response
                     saveToStorage();
                     renderConversation();
+
+                    // Add delay before next model (unless it's the last model of the last iteration)
+                    if (responseDelay > 0 && !(iteration === iterationCount - 1 && i === selectedModelIndices.length - 1)) {
+                        await new Promise(resolve => setTimeout(resolve, responseDelay));
+                    }
                 }
             }
         }
@@ -1952,6 +1987,11 @@
                     // Save and render after each model completes so next model sees the response
                     saveToStorage();
                     renderConversation();
+
+                    // Add delay before next model (unless it's the last model of the last iteration)
+                    if (responseDelay > 0 && !(iteration === iterationCount - 1 && i === orderedIndices.length - 1)) {
+                        await new Promise(resolve => setTimeout(resolve, responseDelay));
+                    }
                 }
 
                 // Increment rotation for next iteration
