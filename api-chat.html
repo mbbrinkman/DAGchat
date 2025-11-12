@@ -635,6 +635,12 @@
                             <span>Include files in message history</span>
                         </label>
                     </div>
+                    <div class="mode-selector" style="margin-top: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="enable-identity-checkbox" style="width: auto;">
+                            <span>Enable model identity injection (multi-model)</span>
+                        </label>
+                    </div>
                     <button onclick="closeModelPicker()">Done</button>
                 </div>
             </div>
@@ -913,6 +919,7 @@
         let messageHistoryLimit = 0; // 0 means all messages
         let includeFilesInHistory = false;
         let responseDelay = 1000; // Delay in ms between responses in serial/rotating/autonomous modes
+        let enableModelIdentity = true; // Whether to inject model identity into system prompts
         let availableModels = [];
         let filteredModels = [];
         let currentAbortControllers = [];
@@ -992,6 +999,7 @@
                 messageHistoryLimit = await loadData('messageHistoryLimit', 0);
                 includeFilesInHistory = await loadData('includeFilesInHistory', false);
                 responseDelay = await loadData('responseDelay', 1000);
+                enableModelIdentity = await loadData('enableModelIdentity', true);
                 conversationHistory = await loadData('conversationHistory', []);
             } catch (e) {
                 console.error('Error loading from IndexedDB:', e);
@@ -1013,6 +1021,7 @@
                     saveData('messageHistoryLimit', messageHistoryLimit),
                     saveData('includeFilesInHistory', includeFilesInHistory),
                     saveData('responseDelay', responseDelay),
+                    saveData('enableModelIdentity', enableModelIdentity),
                     saveData('conversationHistory', conversationHistory)
                 ]);
             } catch (e) {
@@ -1105,6 +1114,15 @@
             if (includeFilesCheckbox) {
                 includeFilesCheckbox.addEventListener('change', (e) => {
                     includeFilesInHistory = e.target.checked;
+                    saveToStorage();
+                });
+            }
+
+            // Enable model identity checkbox
+            const enableIdentityCheckbox = document.getElementById('enable-identity-checkbox');
+            if (enableIdentityCheckbox) {
+                enableIdentityCheckbox.addEventListener('change', (e) => {
+                    enableModelIdentity = e.target.checked;
                     saveToStorage();
                 });
             }
@@ -1292,6 +1310,12 @@
             const includeFilesCheckbox = document.getElementById('include-files-checkbox');
             if (includeFilesCheckbox) {
                 includeFilesCheckbox.checked = includeFilesInHistory;
+            }
+
+            // Set the enable identity checkbox
+            const enableIdentityCheckbox = document.getElementById('enable-identity-checkbox');
+            if (enableIdentityCheckbox) {
+                enableIdentityCheckbox.checked = enableModelIdentity;
             }
 
             popup.style.display = 'flex';
@@ -2072,8 +2096,8 @@
         function buildSystemPrompt(model) {
             let systemPrompt = '';
 
-            // Add model identity information if in multi-model mode
-            if (selectedModelIndices.length > 1 && model.name) {
+            // Add model identity information if enabled and in multi-model mode
+            if (enableModelIdentity && selectedModelIndices.length > 1 && model.name) {
                 const sanitizedName = sanitizeModelName(model.name);
                 systemPrompt = `You are ${sanitizedName}. This is your identity in this conversation.\n\n`;
 
