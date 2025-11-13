@@ -2667,8 +2667,17 @@
             // Escape HTML first
             let escaped = escapeHtml(text);
 
+            // Render block LaTeX first ($$ ... $$) - must come before inline
+            escaped = escaped.replace(/\$\$([\s\S]+?)\$\$/g, (match, latex) => {
+                try {
+                    return katex.renderToString(latex.trim(), { throwOnError: false, displayMode: true });
+                } catch (e) {
+                    return match;
+                }
+            });
+
             // Render inline LaTeX ($ ... $)
-            escaped = escaped.replace(/\$([^\$]+)\$/g, (match, latex) => {
+            escaped = escaped.replace(/\$([^\$\n]+)\$/g, (match, latex) => {
                 try {
                     return katex.renderToString(latex, { throwOnError: false, displayMode: false });
                 } catch (e) {
@@ -2676,22 +2685,14 @@
                 }
             });
 
-            // Render block LaTeX ($$ ... $$)
-            escaped = escaped.replace(/\$\$([^\$]+)\$\$/g, (match, latex) => {
-                try {
-                    return katex.renderToString(latex, { throwOnError: false, displayMode: true });
-                } catch (e) {
-                    return match;
-                }
-            });
-
-            // Simple markdown: **bold**, *italic*, `code`, ```code blocks```
-            escaped = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-            escaped = escaped.replace(/\*(.+?)\*/g, '<em>$1</em>');
-            escaped = escaped.replace(/`([^`]+)`/g, '<code style="background: #3a3a3a; padding: 2px 6px; border-radius: 3px;">$1</code>');
-            
-            // Code blocks
+            // Code blocks - must come before inline code
             escaped = escaped.replace(/```([\s\S]+?)```/g, '<pre style="background: #2a2a2a; padding: 12px; border-radius: 6px; overflow-x: auto; margin: 8px 0;">$1</pre>');
+
+            // Simple markdown: **bold**, *italic*, `code`
+            // Use [\s\S] to match across newlines
+            escaped = escaped.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
+            escaped = escaped.replace(/\*([\s\S]+?)\*/g, '<em>$1</em>');
+            escaped = escaped.replace(/`([^`\n]+)`/g, '<code style="background: #3a3a3a; padding: 2px 6px; border-radius: 3px;">$1</code>');
 
             return escaped;
         }
