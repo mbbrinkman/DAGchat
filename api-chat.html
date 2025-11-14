@@ -641,6 +641,12 @@
                             <span>Enable model identity injection (multi-model)</span>
                         </label>
                     </div>
+                    <div class="mode-selector" style="margin-top: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="background-audio-checkbox" style="width: auto;">
+                            <span>Keep generating in background (iOS - prevents pause when screen off)</span>
+                        </label>
+                    </div>
                     <button onclick="closeModelPicker()">Done</button>
                 </div>
             </div>
@@ -920,10 +926,15 @@
         let includeFilesInHistory = false;
         let responseDelay = 1000; // Delay in ms between responses in serial/rotating/autonomous modes
         let enableModelIdentity = true; // Whether to inject model identity into system prompts
+        let enableBackgroundAudio = false; // Whether to play silent audio to keep app alive on iOS
         let availableModels = [];
         let filteredModels = [];
         let currentAbortControllers = [];
         let conversationHistory = []; // Array to store saved conversations
+
+        // Background audio to prevent iOS from pausing when screen is off
+        let audioContext = null;
+        let silentAudioNode = null;
 
         // Initialize
         async function init() {
@@ -1000,6 +1011,7 @@
                 includeFilesInHistory = await loadData('includeFilesInHistory', false);
                 responseDelay = await loadData('responseDelay', 1000);
                 enableModelIdentity = await loadData('enableModelIdentity', true);
+                enableBackgroundAudio = await loadData('enableBackgroundAudio', false);
                 conversationHistory = await loadData('conversationHistory', []);
             } catch (e) {
                 console.error('Error loading from IndexedDB:', e);
@@ -1022,10 +1034,64 @@
                     saveData('includeFilesInHistory', includeFilesInHistory),
                     saveData('responseDelay', responseDelay),
                     saveData('enableModelIdentity', enableModelIdentity),
+                    saveData('enableBackgroundAudio', enableBackgroundAudio),
                     saveData('conversationHistory', conversationHistory)
                 ]);
             } catch (e) {
                 console.error('Error saving to IndexedDB:', e);
+            }
+        }
+
+        function startBackgroundAudio() {
+            if (!enableBackgroundAudio) return;
+
+            try {
+                if (!audioContext) {
+                    // Create audio context
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                // Resume context if suspended (needed for iOS)
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+
+                if (!silentAudioNode) {
+                    // Create a very quiet oscillator (barely audible)
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    // Set to extremely low volume (essentially silent)
+                    gainNode.gain.value = 0.0001;
+
+                    // Connect nodes
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    // Start oscillator
+                    oscillator.start();
+
+                    silentAudioNode = { oscillator, gainNode };
+                }
+            } catch (e) {
+                console.error('Error starting background audio:', e);
+            }
+        }
+
+        function stopBackgroundAudio() {
+            try {
+                if (silentAudioNode) {
+                    silentAudioNode.oscillator.stop();
+                    silentAudioNode.oscillator.disconnect();
+                    silentAudioNode.gainNode.disconnect();
+                    silentAudioNode = null;
+                }
+
+                if (audioContext && audioContext.state !== 'closed') {
+                    audioContext.suspend();
+                }
+            } catch (e) {
+                console.error('Error stopping background audio:', e);
             }
         }
 
@@ -1124,6 +1190,18 @@
                 enableIdentityCheckbox.addEventListener('change', (e) => {
                     enableModelIdentity = e.target.checked;
                     saveToStorage();
+                });
+            }
+
+            const backgroundAudioCheckbox = document.getElementById('background-audio-checkbox');
+            if (backgroundAudioCheckbox) {
+                backgroundAudioCheckbox.addEventListener('change', (e) => {
+                    enableBackgroundAudio = e.target.checked;
+                    saveToStorage();
+                    // Stop audio if disabled while running
+                    if (!enableBackgroundAudio) {
+                        stopBackgroundAudio();
+                    }
                 });
             }
 
@@ -1316,6 +1394,12 @@
             const enableIdentityCheckbox = document.getElementById('enable-identity-checkbox');
             if (enableIdentityCheckbox) {
                 enableIdentityCheckbox.checked = enableModelIdentity;
+            }
+
+            // Set the background audio checkbox
+            const backgroundAudioCheckbox = document.getElementById('background-audio-checkbox');
+            if (backgroundAudioCheckbox) {
+                backgroundAudioCheckbox.checked = enableBackgroundAudio;
             }
 
             popup.style.display = 'flex';
@@ -1850,6 +1934,7 @@
 
             // Reset UI state
             isStreaming = false;
+            stopBackgroundAudio(); // Stop silent audio when stopped
             hideStopButton();
             document.getElementById('send-btn').disabled = false;
         }
@@ -1896,6 +1981,7 @@
             isStreaming = true;
             currentAbortControllers = [];
             showStopButton();
+            startBackgroundAudio(); // Keep iOS active during generation
             renderConversation();
 
             try {
@@ -1920,6 +2006,7 @@
             }
 
             isStreaming = false;
+            stopBackgroundAudio(); // Stop silent audio when done
             currentAbortControllers = [];
             hideStopButton();
             renderConversation();
@@ -2685,6 +2772,7 @@
             isStreaming = true;
             currentAbortControllers = [];
             showStopButton();
+            startBackgroundAudio(); // Keep iOS active during generation
 
             try {
                 await streamResponse(model, assistantMessage);
@@ -2695,6 +2783,7 @@
             }
 
             isStreaming = false;
+            stopBackgroundAudio(); // Stop silent audio when done
             currentAbortControllers = [];
             hideStopButton();
             saveToStorage();
