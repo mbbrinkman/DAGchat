@@ -3054,7 +3054,16 @@
         }
 
         function clearHistory() {
-            clearConversation();
+            if (!confirm('Clear ALL conversation history? This will delete all saved conversations and cannot be undone.')) return;
+            conversationHistory = [];
+            currentConversation = [];
+            attachedFiles = [];
+            editingMessageIndex = null;
+            saveToStorage();
+            renderConversation();
+            renderHistory();
+            renderAttachedFiles();
+            document.getElementById('message-input').value = '';
         }
 
         function exportConversation() {
