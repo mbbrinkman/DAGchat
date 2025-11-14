@@ -2572,6 +2572,7 @@
                                                 assistantMessage.images.push({
                                                     url: block.image_url.url
                                                 });
+                                                hasReceivedContent = true;
                                             }
                                         }
                                     }
@@ -2592,6 +2593,7 @@
                             // Handle reasoning/thinking content when streaming
                             if (delta?.reasoning) {
                                 assistantMessage.thinking += delta.reasoning;
+                                hasReceivedContent = true;
                                 renderConversation();
                             }
 
@@ -2607,6 +2609,7 @@
                                         assistantMessage.images.push({
                                             url: img.image_url.url
                                         });
+                                        hasReceivedContent = true;
                                     }
                                 }
                                 renderConversation();
@@ -2617,6 +2620,7 @@
                                 for (const block of message.content) {
                                     if (block.type === 'text' && block.text) {
                                         assistantMessage.content += block.text;
+                                        hasReceivedContent = true;
                                     } else if (block.type === 'image_url' && block.image_url?.url) {
                                         if (!assistantMessage.images) {
                                             assistantMessage.images = [];
@@ -2625,6 +2629,7 @@
                                             assistantMessage.images.push({
                                                 url: block.image_url.url
                                             });
+                                            hasReceivedContent = true;
                                         }
                                     }
                                 }
