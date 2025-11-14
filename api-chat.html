@@ -2428,10 +2428,31 @@
                             const parsed = JSON.parse(data);
                             const delta = parsed.choices?.[0]?.delta;
 
-                            // Handle regular content
+                            // Handle content (can be string or array of content blocks)
                             if (delta?.content) {
-                                assistantMessage.content += delta.content;
-                                renderConversation();
+                                // Check if content is an array (multi-part content with text and images)
+                                if (Array.isArray(delta.content)) {
+                                    for (const block of delta.content) {
+                                        if (block.type === 'text' && block.text) {
+                                            assistantMessage.content += block.text;
+                                        } else if (block.type === 'image_url' && block.image_url?.url) {
+                                            if (!assistantMessage.images) {
+                                                assistantMessage.images = [];
+                                            }
+                                            // Add image if not already present
+                                            if (!assistantMessage.images.find(i => i.url === block.image_url.url)) {
+                                                assistantMessage.images.push({
+                                                    url: block.image_url.url
+                                                });
+                                            }
+                                        }
+                                    }
+                                    renderConversation();
+                                } else if (typeof delta.content === 'string') {
+                                    // String content (most common case)
+                                    assistantMessage.content += delta.content;
+                                    renderConversation();
+                                }
                             }
 
                             // Handle reasoning/thinking content when streaming
@@ -2452,6 +2473,25 @@
                                         assistantMessage.images.push({
                                             url: img.image_url.url
                                         });
+                                    }
+                                }
+                                renderConversation();
+                            }
+
+                            // Also check for content array in message (non-streaming response)
+                            if (message?.content && Array.isArray(message.content)) {
+                                for (const block of message.content) {
+                                    if (block.type === 'text' && block.text) {
+                                        assistantMessage.content += block.text;
+                                    } else if (block.type === 'image_url' && block.image_url?.url) {
+                                        if (!assistantMessage.images) {
+                                            assistantMessage.images = [];
+                                        }
+                                        if (!assistantMessage.images.find(i => i.url === block.image_url.url)) {
+                                            assistantMessage.images.push({
+                                                url: block.image_url.url
+                                            });
+                                        }
                                     }
                                 }
                                 renderConversation();
