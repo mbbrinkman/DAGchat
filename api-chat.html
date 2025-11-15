@@ -1309,10 +1309,11 @@
             } else {
                 models.forEach((model, index) => {
                     const wrapper = document.createElement('div');
-                    wrapper.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-bottom: 8px;';
+                    wrapper.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-bottom: 5px;';
 
                     const label = document.createElement('label');
-                    label.style.cssText = 'flex: 1; display: flex; align-items: center; cursor: pointer;';
+                    // Let CSS handle the label styling (grid layout)
+                    label.style.cssText = 'flex: 1; margin-bottom: 0;';
 
                     const checkbox = document.createElement('input');
                     checkbox.type = 'checkbox';
