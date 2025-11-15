@@ -2113,7 +2113,15 @@
                     };
                     currentConversation.push(assistantMessage);
                     renderConversation();
-                    await streamResponse(model, assistantMessage);
+
+                    try {
+                        await streamResponse(model, assistantMessage);
+                    } catch (error) {
+                        console.error('Error in parallel mode:', error);
+                        // Set error message in the assistant message instead of empty content
+                        assistantMessage.content = `Error: ${error.message}`;
+                        renderConversation();
+                    }
                 });
 
                 await Promise.all(promises);
@@ -2140,7 +2148,15 @@
                     };
                     currentConversation.push(assistantMessage);
                     renderConversation();
-                    await streamResponse(model, assistantMessage);
+
+                    try {
+                        await streamResponse(model, assistantMessage);
+                    } catch (error) {
+                        console.error('Error in serial mode:', error);
+                        // Set error message in the assistant message instead of empty content
+                        assistantMessage.content = `Error: ${error.message}`;
+                        renderConversation();
+                    }
 
                     // Save and render after each model completes so next model sees the response
                     saveToStorage();
@@ -2178,7 +2194,15 @@
                     };
                     currentConversation.push(assistantMessage);
                     renderConversation();
-                    await streamResponse(model, assistantMessage);
+
+                    try {
+                        await streamResponse(model, assistantMessage);
+                    } catch (error) {
+                        console.error('Error in rotating mode:', error);
+                        // Set error message in the assistant message instead of empty content
+                        assistantMessage.content = `Error: ${error.message}`;
+                        renderConversation();
+                    }
 
                     // Save and render after each model completes so next model sees the response
                     saveToStorage();
@@ -2213,13 +2237,23 @@
                 role: 'assistant',
                 content: '',
                 thinking: '',
+                images: [],
                 modelName: model.name,
                 timestamp: Date.now()
             };
 
             currentConversation.push(assistantMessage);
             renderConversation();
-            await streamResponse(model, assistantMessage);
+
+            try {
+                await streamResponse(model, assistantMessage);
+            } catch (error) {
+                console.error('Error in autonomous round:', error);
+                // Set error message in the assistant message instead of empty content
+                assistantMessage.content = `Error: ${error.message}`;
+                renderConversation();
+            }
+
             saveToStorage();
 
             // Increment rotation
