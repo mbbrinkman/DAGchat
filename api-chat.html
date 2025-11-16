@@ -2575,9 +2575,12 @@ You should respond directly with your message content - do NOT add extra formatt
 
             // Debug: Log the actual messages being sent (remove in production)
             console.log('API Request for', model.name, ':', {
-                messages: body.messages,
-                model: body.model
+                model: body.model,
+                modalities: body.modalities,
+                stream: body.stream,
+                messageCount: body.messages.length
             });
+            console.log('Full request body:', JSON.stringify(body, null, 2));
 
             const apiKey = resolveApiKey(model);
 
@@ -2677,6 +2680,11 @@ You should respond directly with your message content - do NOT add extra formatt
                         try {
                             const parsed = JSON.parse(data);
 
+                            // Debug: Log each chunk to see what we're receiving
+                            if (parsed.choices?.[0]?.delta?.images || parsed.choices?.[0]?.message?.images) {
+                                console.log('Image data received:', parsed);
+                            }
+
                             // Check for OpenRouter error in response body (HTTP 200 with error field)
                             // OpenRouter returns rate limits and other errors as HTTP 200 with error object
                             if (parsed.error) {
@@ -2696,6 +2704,23 @@ You should respond directly with your message content - do NOT add extra formatt
                             }
 
                             const delta = parsed.choices?.[0]?.delta;
+
+                            // Handle images in streaming delta
+                            if (delta?.images && delta.images.length > 0) {
+                                if (!assistantMessage.images) {
+                                    assistantMessage.images = [];
+                                }
+                                for (const img of delta.images) {
+                                    if (img.image_url?.url && !assistantMessage.images.find(i => i.url === img.image_url.url)) {
+                                        console.log('Received image in streaming delta:', img.image_url.url.substring(0, 50) + '...');
+                                        assistantMessage.images.push({
+                                            url: img.image_url.url
+                                        });
+                                        hasReceivedContent = true;
+                                    }
+                                }
+                                renderConversation();
+                            }
 
                             // Handle content (can be string or array of content blocks)
                             if (delta?.content) {
