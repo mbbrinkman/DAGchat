@@ -2331,7 +2331,11 @@
                 }
 
                 if (conversants.length > 0) {
-                    systemPrompt += `You are conversing with: ${conversants.join(', ')}. When you see "X said: ...", that is a message from X. You should respond directly with your message content - do NOT add extra formatting, labels, prefixes, or leading newlines before your response. Simply start your response immediately with your first word. You should respond as ${sanitizedName}, not as any other participant. Note that some chat participants may be different instances of the same underlying model as you, distinguished only by their chat identifier.\n\n`;
+                    systemPrompt += `You are conversing with: ${conversants.join(', ')}.
+
+IMPORTANT: In this multi-participant conversation, user messages may come from other AI models, not just from Human. When you see a message that starts with "X said: ...", that message is FROM X - it's their actual message content, not the human quoting them. You should treat "Model A said: hello" the same as if Model A directly sent you "hello". This is a real conversation between multiple participants (${conversants.join(', ')}), and you should engage naturally.
+
+You should respond directly with your message content - do NOT add extra formatting, labels, prefixes, or leading newlines before your response. Simply start your response immediately with your first word. You should respond as ${sanitizedName}, not as any other participant. Note that some chat participants may be different instances of the same underlying model as you, distinguished only by their chat identifier.\n\n`;
                 }
             }
 
