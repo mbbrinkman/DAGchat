@@ -2491,7 +2491,9 @@ You should respond directly with your message content - do NOT add extra formatt
             const body = {
                 model: model.model_id,
                 messages: messages,
-                stream: true
+                stream: true,
+                // Enable both text and image generation (required for image-capable models)
+                modalities: ["text", "image"]
             };
 
             // Add optional parameters if specified
