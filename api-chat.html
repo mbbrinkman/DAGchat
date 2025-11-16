@@ -2619,6 +2619,8 @@
             let buffer = '';
             let finishReason = null;
             let hasReceivedContent = false;
+            let isFirstContentChunk = true; // Track if this is the first content chunk
+            let isFirstThinkingChunk = true; // Track if this is the first thinking chunk
 
             while (true) {
                 const { done, value } = await reader.read();
@@ -2643,8 +2645,11 @@
                                 if (Array.isArray(delta.content)) {
                                     for (const block of delta.content) {
                                         if (block.type === 'text' && block.text) {
-                                            assistantMessage.content += block.text;
+                                            // Trim leading whitespace from first content chunk only
+                                            const textToAdd = isFirstContentChunk ? block.text.trimStart() : block.text;
+                                            assistantMessage.content += textToAdd;
                                             hasReceivedContent = true;
+                                            isFirstContentChunk = false;
                                         } else if (block.type === 'image_url' && block.image_url?.url) {
                                             if (!assistantMessage.images) {
                                                 assistantMessage.images = [];
@@ -2661,8 +2666,11 @@
                                     renderConversation();
                                 } else if (typeof delta.content === 'string') {
                                     // String content (most common case)
-                                    assistantMessage.content += delta.content;
+                                    // Trim leading whitespace from first content chunk only
+                                    const contentToAdd = isFirstContentChunk ? delta.content.trimStart() : delta.content;
+                                    assistantMessage.content += contentToAdd;
                                     hasReceivedContent = true;
+                                    isFirstContentChunk = false;
                                     renderConversation();
                                 }
                             }
@@ -2674,8 +2682,11 @@
 
                             // Handle reasoning/thinking content when streaming
                             if (delta?.reasoning) {
-                                assistantMessage.thinking += delta.reasoning;
+                                // Trim leading whitespace from first thinking chunk only
+                                const thinkingToAdd = isFirstThinkingChunk ? delta.reasoning.trimStart() : delta.reasoning;
+                                assistantMessage.thinking += thinkingToAdd;
                                 hasReceivedContent = true;
+                                isFirstThinkingChunk = false;
                                 renderConversation();
                             }
 
@@ -2701,8 +2712,11 @@
                             if (message?.content && Array.isArray(message.content)) {
                                 for (const block of message.content) {
                                     if (block.type === 'text' && block.text) {
-                                        assistantMessage.content += block.text;
+                                        // Trim leading whitespace from first content chunk only
+                                        const textToAdd = isFirstContentChunk ? block.text.trimStart() : block.text;
+                                        assistantMessage.content += textToAdd;
                                         hasReceivedContent = true;
+                                        isFirstContentChunk = false;
                                     } else if (block.type === 'image_url' && block.image_url?.url) {
                                         if (!assistantMessage.images) {
                                             assistantMessage.images = [];
