@@ -2361,6 +2361,9 @@ You should respond directly with your message content - do NOT add extra formatt
             const messages = [];
             let lastRole = null;
 
+            // Check if we're in a multi-model mode where models talk to each other
+            const isMultiModelMode = multiModelMode === 'serial' || multiModelMode === 'rotating' || multiModelMode === 'autonomous';
+
             // Filter messages based on mode
             let conversationToUse = [...currentConversation];
 
@@ -2434,18 +2437,39 @@ You should respond directly with your message content - do NOT add extra formatt
                     });
                     lastRole = 'user';
                 } else if (msg.role === 'assistant') {
-                    // Skip messages with empty content (could be streaming failures)
-                    if (!msg.content || msg.content.trim() === '') {
+                    // Build content string from all available content sources
+                    let content = '';
+
+                    // Include thinking if it exists
+                    if (msg.thinking && msg.thinking.trim()) {
+                        content += `[Thinking: ${msg.thinking.trim()}]\n\n`;
+                    }
+
+                    // Include main content
+                    if (msg.content && msg.content.trim()) {
+                        content += msg.content.trim();
+                    }
+
+                    // Include image descriptions if images exist
+                    if (msg.images && msg.images.length > 0) {
+                        if (content) content += '\n\n';
+                        content += `[Generated ${msg.images.length} image(s)]`;
+                    }
+
+                    // Skip only if there's truly no content at all
+                    if (!content.trim()) {
                         continue;
                     }
 
-                    // If last message was also assistant, convert it to user to avoid consecutive assistant messages
-                    const role = lastRole === 'assistant' ? 'user' : 'assistant';
+                    // In multi-model modes (serial, rotating, autonomous), convert ALL assistant messages to user role
+                    // This prevents confusion and matches how models are trained (system + user inputs → assistant response)
+                    let role = 'user';
+                    if (!isMultiModelMode) {
+                        // In parallel mode, keep the assistant role but convert consecutive assistants to user
+                        role = lastRole === 'assistant' ? 'user' : 'assistant';
+                    }
 
-                    // Aggressively trim all leading/trailing whitespace and newlines before sending to API
-                    let content = msg.content.trim();
-
-                    // Add model name prefix if converting to user and model has a name
+                    // Add model name prefix when sending as user
                     if (role === 'user' && msg.modelName) {
                         const sanitizedModelName = sanitizeModelName(msg.modelName);
                         content = `${sanitizedModelName} said: ${content}`;
@@ -2455,7 +2479,7 @@ You should respond directly with your message content - do NOT add extra formatt
                         role: role,
                         content: content
                     });
-                    lastRole = role; // Track the actual role sent to API, not the original role
+                    lastRole = role;
                 }
             }
 
