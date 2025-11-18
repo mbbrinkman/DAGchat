@@ -19,6 +19,7 @@
             background: #1a1a1a;
             color: #e0e0e0;
             height: 100vh;
+            height: 100dvh; /* Use dynamic viewport height for mobile (falls back to 100vh) */
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -1208,6 +1209,65 @@
 
             // Autonomous button
             document.getElementById('auto-btn').addEventListener('click', toggleAutonomous);
+
+            // Handle mobile keyboard show/hide to fix viewport issues
+            // When keyboard closes, scroll chat to bottom and fix layout
+            let lastHeight = window.innerHeight;
+
+            window.addEventListener('resize', () => {
+                const currentHeight = window.innerHeight;
+
+                // Keyboard closed (viewport got taller)
+                if (currentHeight > lastHeight) {
+                    // Scroll chat to bottom
+                    const chatMessages = document.getElementById('chat-messages');
+                    if (chatMessages) {
+                        setTimeout(() => {
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                        }, 100);
+                    }
+
+                    // Force layout recalculation
+                    document.body.style.height = currentHeight + 'px';
+                    setTimeout(() => {
+                        document.body.style.height = '100vh';
+                    }, 200);
+                }
+
+                lastHeight = currentHeight;
+            });
+
+            // Handle Visual Viewport API for better mobile support
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', () => {
+                    const viewport = window.visualViewport;
+
+                    // When keyboard is hidden (viewport height increases)
+                    if (viewport.height > lastHeight) {
+                        const chatMessages = document.getElementById('chat-messages');
+                        if (chatMessages) {
+                            setTimeout(() => {
+                                chatMessages.scrollTop = chatMessages.scrollHeight;
+                            }, 100);
+                        }
+                    }
+
+                    lastHeight = viewport.height;
+                });
+            }
+
+            // Also handle when input loses focus
+            const messageInput = document.getElementById('message-input');
+            messageInput.addEventListener('blur', () => {
+                setTimeout(() => {
+                    // Scroll to bottom when keyboard closes
+                    window.scrollTo(0, 0);
+                    const chatMessages = document.getElementById('chat-messages');
+                    if (chatMessages) {
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }
+                }, 300);
+            });
 
             // Pre-populate OpenRouter config
             updateModelConfigTemplate();
