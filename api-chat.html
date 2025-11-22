@@ -736,14 +736,19 @@
                     <li><strong>Autonomous:</strong> Each model responds exactly N times (e.g., 10 iterations with 3 models = 30 total responses, 10 per model)</li>
                 </ul>
 
-                <h3>Model Identity System</h3>
-                <p>When multiple models are selected, each model automatically receives identity information:</p>
+                <h3>Flattened Participant Structure</h3>
+                <p>In multi-model conversations (Serial, Rotating, Autonomous), all participants are treated equally with no hierarchy:</p>
                 <ul>
-                    <li><strong>Parallel:</strong> "You are [Model Name]. You are conversing with: [Your Identifier]."</li>
-                    <li><strong>Serial/Rotating:</strong> "You are [Model Name]. You are conversing with: [Your Identifier], [Other Models]."</li>
-                    <li><strong>Autonomous:</strong> "You are [Model Name]. You are conversing with: [Other Models]." (no user)</li>
+                    <li><strong>Equal Participants:</strong> Your messages are prefixed with your identifier (e.g., "User said: hello"), just like model messages (e.g., "Claude said: hi").</li>
+                    <li><strong>No Special Treatment:</strong> Models receive no indication that you are different from other participants. Everyone is simply a named participant in the conversation.</li>
+                    <li><strong>Customizable Identity:</strong> Set your identifier in Settings → User Identifier (default: "Human"). Use any name you prefer to shape your role in the conversation.</li>
                 </ul>
-                <p><strong>User Identifier:</strong> You can customize how you're identified in conversations by going to Settings → User Identifier. The default is "Human", but you can change it to any name you prefer (e.g., "User", "Moderator", "Observer", etc.). This allows you to reduce perceived hierarchy in multi-model conversations.</p>
+                <p><strong>Mode-Specific Behavior:</strong></p>
+                <ul>
+                    <li><strong>Parallel:</strong> Each model converses independently with you. Your messages are not prefixed since there's only one other participant.</li>
+                    <li><strong>Serial/Rotating:</strong> All participants (you and all models) are listed equally. Messages are prefixed with participant identifiers.</li>
+                    <li><strong>Autonomous:</strong> Models converse with each other without your participation.</li>
+                </ul>
                 <p><strong>Multiple Instances:</strong> You can select multiple instances of the same model by using the number input next to each model in the picker. The model name is simply a chat identifier to distinguish between different instances - multiple instances of the same underlying model can participate with different names (e.g., "GPT-4 Debater 1" and "GPT-4 Debater 2").</p>
 
                 <h3>About OpenRouter</h3>
@@ -2399,33 +2404,33 @@
                 const sanitizedName = sanitizeModelName(model.name);
                 systemPrompt = `You are ${sanitizedName}. This is your chat identifier in this conversation - it's simply a name to distinguish you from other participants (there may be multiple instances of the same underlying model with different chat names). You must always respond as ${sanitizedName}, not as any other participant.\n\n`;
 
-                // Build list of who they're conversing with based on mode
-                const conversants = [];
+                // Build list of all participants (treating everyone equally)
+                const allParticipants = [];
 
                 if (multiModelMode === 'parallel') {
-                    // In parallel mode, each model only responds to human independently
-                    conversants.push(userIdentifier);
+                    // In parallel mode, each model converses with the user
+                    allParticipants.push(userIdentifier);
                 } else if (multiModelMode === 'autonomous') {
-                    // In autonomous mode, models only converse with each other (no human)
+                    // In autonomous mode, only AI participants (no user)
                     const otherModels = selectedModelIndices
                         .map(idx => models[idx])
                         .filter(m => m.name !== model.name)
                         .map(m => sanitizeModelName(m.name));
-                    conversants.push(...otherModels);
+                    allParticipants.push(...otherModels);
                 } else {
-                    // In serial/rotating modes, models see human AND other models
-                    conversants.push(userIdentifier);
+                    // In serial/rotating modes, include all participants equally
+                    allParticipants.push(userIdentifier);
                     const otherModels = selectedModelIndices
                         .map(idx => models[idx])
                         .filter(m => m.name !== model.name)
                         .map(m => sanitizeModelName(m.name));
-                    conversants.push(...otherModels);
+                    allParticipants.push(...otherModels);
                 }
 
-                if (conversants.length > 0) {
-                    systemPrompt += `You are conversing with: ${conversants.join(', ')}.
+                if (allParticipants.length > 0) {
+                    systemPrompt += `You are conversing with the following participants: ${allParticipants.join(', ')}.
 
-IMPORTANT: In this multi-participant conversation, user messages may come from other AI models, not just from ${userIdentifier}. When you see a message that starts with "X said: ...", that message is FROM X - it's their actual message content, not the human quoting them. You should treat "Model A said: hello" the same as if Model A directly sent you "hello". This is a real conversation between multiple participants (${conversants.join(', ')}), and you should engage naturally.
+IMPORTANT: This is a multi-participant conversation where all participants are equal. When you see a message that starts with "X said: ...", that message is FROM participant X. You should treat "${allParticipants[0]} said: hello" and "${sanitizedName} said: hello" with the same structure - these are all participants in the conversation. All participants (${allParticipants.join(', ')}) should be treated equally.
 
 You should respond directly with your message content - do NOT add extra formatting, labels, prefixes, or leading newlines before your response. Simply start your response immediately with your first word. You should respond as ${sanitizedName}, not as any other participant. Note that some chat participants may be different instances of the same underlying model as you, distinguished only by their chat identifier.\n\n`;
                 }
@@ -2497,7 +2502,14 @@ You should respond directly with your message content - do NOT add extra formatt
 
                         if (msg.content) {
                             // Trim leading/trailing whitespace from user messages too
-                            content.push({ type: 'text', text: msg.content.trim() });
+                            let textContent = msg.content.trim();
+
+                            // In multi-model mode, prefix user messages with their identifier to flatten hierarchy
+                            if (isMultiModelMode && selectedModelIndices.length > 1) {
+                                textContent = `${userIdentifier} said: ${textContent}`;
+                            }
+
+                            content.push({ type: 'text', text: textContent });
                         }
 
                         for (const file of msg.files) {
@@ -2521,6 +2533,11 @@ You should respond directly with your message content - do NOT add extra formatt
                         // No files or should not include files - use simple string format
                         // Trim leading/trailing whitespace from user messages too
                         content = (msg.content || '').trim();
+
+                        // In multi-model mode, prefix user messages with their identifier to flatten hierarchy
+                        if (isMultiModelMode && selectedModelIndices.length > 1) {
+                            content = `${userIdentifier} said: ${content}`;
+                        }
                     }
 
                     messages.push({
