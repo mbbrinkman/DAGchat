@@ -654,6 +654,20 @@
                             <span>Keep generating in background (iOS – best effort only; may still pause when screen locks)</span>
                         </label>
                     </div>
+                    <div class="mode-selector" style="margin-top: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="extended-thinking-checkbox" style="width: auto;">
+                            <span>Enable extended thinking</span>
+                        </label>
+                        <div style="margin-left: 28px; margin-top: 8px; display: flex; align-items: center; gap: 8px;">
+                            <label for="thinking-effort" style="font-size: 13px; color: #aaa;">Effort:</label>
+                            <select id="thinking-effort" style="background: #2a2a2a; color: #e0e0e0; border: 1px solid #4a4a4a; padding: 4px 8px; border-radius: 4px;">
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high" selected>High</option>
+                            </select>
+                        </div>
+                    </div>
                     <button onclick="closeModelPicker()">Done</button>
                 </div>
             </div>
@@ -955,6 +969,8 @@
         let responseDelay = 1000; // Delay in ms between responses in serial/rotating/autonomous modes
         let enableModelIdentity = true; // Whether to inject model identity into system prompts
         let enableBackgroundAudio = false; // Whether to play silent audio to keep app alive on iOS
+        let enableExtendedThinking = false; // Whether to enable extended thinking/reasoning mode
+        let thinkingEffort = 'high'; // Effort level for extended thinking: 'low', 'medium', or 'high'
         let userIdentifier = 'Human'; // Customizable identifier for the user in multi-model conversations
         let availableModels = [];
         let filteredModels = [];
@@ -1048,6 +1064,8 @@
                 responseDelay = await loadData('responseDelay', 1000);
                 enableModelIdentity = await loadData('enableModelIdentity', true);
                 enableBackgroundAudio = await loadData('enableBackgroundAudio', false);
+                enableExtendedThinking = await loadData('enableExtendedThinking', false);
+                thinkingEffort = await loadData('thinkingEffort', 'high');
                 userIdentifier = await loadData('userIdentifier', 'Human');
                 conversationHistory = await loadData('conversationHistory', []);
             } catch (e) {
@@ -1072,6 +1090,8 @@
                     saveData('responseDelay', responseDelay),
                     saveData('enableModelIdentity', enableModelIdentity),
                     saveData('enableBackgroundAudio', enableBackgroundAudio),
+                    saveData('enableExtendedThinking', enableExtendedThinking),
+                    saveData('thinkingEffort', thinkingEffort),
                     saveData('userIdentifier', userIdentifier),
                     saveData('conversationHistory', conversationHistory)
                 ]);
@@ -1247,6 +1267,24 @@
                     if (!enableBackgroundAudio) {
                         stopBackgroundAudio();
                     }
+                });
+            }
+
+            // Extended thinking checkbox
+            const extendedThinkingCheckbox = document.getElementById('extended-thinking-checkbox');
+            if (extendedThinkingCheckbox) {
+                extendedThinkingCheckbox.addEventListener('change', (e) => {
+                    enableExtendedThinking = e.target.checked;
+                    saveToStorage();
+                });
+            }
+
+            // Thinking effort selector
+            const thinkingEffortSelect = document.getElementById('thinking-effort');
+            if (thinkingEffortSelect) {
+                thinkingEffortSelect.addEventListener('change', (e) => {
+                    thinkingEffort = e.target.value;
+                    saveToStorage();
                 });
             }
 
@@ -1548,6 +1586,18 @@
             const backgroundAudioCheckbox = document.getElementById('background-audio-checkbox');
             if (backgroundAudioCheckbox) {
                 backgroundAudioCheckbox.checked = enableBackgroundAudio;
+            }
+
+            // Set the extended thinking checkbox
+            const extendedThinkingCheckbox = document.getElementById('extended-thinking-checkbox');
+            if (extendedThinkingCheckbox) {
+                extendedThinkingCheckbox.checked = enableExtendedThinking;
+            }
+
+            // Set the thinking effort selector
+            const thinkingEffortSelect = document.getElementById('thinking-effort');
+            if (thinkingEffortSelect) {
+                thinkingEffortSelect.value = thinkingEffort;
             }
 
             popup.style.display = 'flex';
@@ -2847,8 +2897,11 @@ You should respond directly with your message content - do NOT add extra formatt
             if (model.tool_choice) {
                 body.tool_choice = model.tool_choice;
             }
-            if (model.reasoning) {
-                // Add reasoning parameter (effort: "high" | "medium" | "low" or max_tokens: number)
+            // Add reasoning parameter - global setting takes precedence over model config
+            if (enableExtendedThinking) {
+                body.reasoning = { effort: thinkingEffort };
+            } else if (model.reasoning) {
+                // Fall back to model's configured reasoning if global setting is off
                 body.reasoning = model.reasoning;
             }
 
