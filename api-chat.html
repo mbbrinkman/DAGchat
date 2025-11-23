@@ -3814,6 +3814,14 @@ You should respond directly with your message content - do NOT add extra formatt
                 return masked;
             });
 
+            // Clean up excessive newlines around block elements
+            // Remove newlines before/after block elements to prevent double spacing
+            processed = processed.replace(/\n+(<\/?(h[1-6]|ul|ol|blockquote|hr|pre)[^>]*>)/g, '$1');
+            processed = processed.replace(/(<\/?(h[1-6]|ul|ol|blockquote|hr|pre)[^>]*>)\n+/g, '$1');
+
+            // Convert remaining double+ newlines to single newline + br for paragraph breaks
+            processed = processed.replace(/\n\n+/g, '\n<br>\n');
+
             return processed;
         }
 
