@@ -3712,10 +3712,91 @@ You should respond directly with your message content - do NOT add extra formatt
                 }
             });
 
-            // Simple markdown: **bold**, *italic*
+            // Process markdown features (before unmasking code)
+
+            // Headings (h1-h6) - must be at start of line
+            processed = processed.replace(/^######\s+(.+)$/gm, '<h6 style="margin: 16px 0 8px 0; font-size: 1em; font-weight: 600;">$1</h6>');
+            processed = processed.replace(/^#####\s+(.+)$/gm, '<h5 style="margin: 16px 0 8px 0; font-size: 1.1em; font-weight: 600;">$1</h5>');
+            processed = processed.replace(/^####\s+(.+)$/gm, '<h4 style="margin: 16px 0 8px 0; font-size: 1.2em; font-weight: 600;">$1</h4>');
+            processed = processed.replace(/^###\s+(.+)$/gm, '<h3 style="margin: 16px 0 8px 0; font-size: 1.3em; font-weight: 600;">$1</h3>');
+            processed = processed.replace(/^##\s+(.+)$/gm, '<h2 style="margin: 16px 0 8px 0; font-size: 1.5em; font-weight: 600;">$1</h2>');
+            processed = processed.replace(/^#\s+(.+)$/gm, '<h1 style="margin: 16px 0 8px 0; font-size: 1.8em; font-weight: 600;">$1</h1>');
+
+            // Horizontal rules (---, ***, ___)
+            processed = processed.replace(/^(?:---|\*\*\*|___)\s*$/gm, '<hr style="margin: 16px 0; border: none; border-top: 1px solid #444;">');
+
+            // Blockquotes (>) - must be at start of line
+            processed = processed.replace(/^&gt;\s+(.+)$/gm, '<blockquote style="border-left: 3px solid #4a9eff; padding-left: 12px; margin: 8px 0; color: #aaa;">$1</blockquote>');
+
+            // Links [text](url)
+            processed = processed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color: #4a9eff; text-decoration: none;">$1</a>');
+
+            // Strikethrough ~~text~~
+            processed = processed.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+
+            // Bold and italic - process bold first to avoid conflicts
             // Use [\s\S] to match across newlines
             processed = processed.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
+            processed = processed.replace(/__([\s\S]+?)__/g, '<strong>$1</strong>');
             processed = processed.replace(/\*([\s\S]+?)\*/g, '<em>$1</em>');
+            processed = processed.replace(/_([^\s_][^_]*?)_/g, '<em>$1</em>');
+
+            // Process lists line by line to handle both ordered and unordered
+            let lines = processed.split('\n');
+            let result = [];
+            let inUnorderedList = false;
+            let inOrderedList = false;
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+
+                // Check for unordered list item (-, *, +)
+                const unorderedMatch = line.match(/^([*\-+])\s+(.+)$/);
+                if (unorderedMatch) {
+                    if (!inUnorderedList) {
+                        if (inOrderedList) {
+                            result.push('</ol>');
+                            inOrderedList = false;
+                        }
+                        result.push('<ul style="margin: 8px 0; padding-left: 20px;">');
+                        inUnorderedList = true;
+                    }
+                    result.push(`<li>${unorderedMatch[2]}</li>`);
+                    continue;
+                }
+
+                // Check for ordered list item (1., 2., etc.)
+                const orderedMatch = line.match(/^\d+\.\s+(.+)$/);
+                if (orderedMatch) {
+                    if (!inOrderedList) {
+                        if (inUnorderedList) {
+                            result.push('</ul>');
+                            inUnorderedList = false;
+                        }
+                        result.push('<ol style="margin: 8px 0; padding-left: 20px;">');
+                        inOrderedList = true;
+                    }
+                    result.push(`<li>${orderedMatch[1]}</li>`);
+                    continue;
+                }
+
+                // Not a list item - close any open lists
+                if (inUnorderedList) {
+                    result.push('</ul>');
+                    inUnorderedList = false;
+                }
+                if (inOrderedList) {
+                    result.push('</ol>');
+                    inOrderedList = false;
+                }
+                result.push(line);
+            }
+
+            // Close any remaining open lists
+            if (inUnorderedList) result.push('</ul>');
+            if (inOrderedList) result.push('</ol>');
+
+            processed = result.join('\n');
 
             // Restore masked code (converts to proper HTML)
             processed = processed.replace(/__CODE_MASK_(\d+)__/g, (_, i) => {
