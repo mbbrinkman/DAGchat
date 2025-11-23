@@ -943,6 +943,7 @@
         let attachedFiles = [];
         let editingMessageIndex = null;
         let isStreaming = false;
+        let userStoppedGeneration = false; // Flag to prevent subsequent models from responding after stop is pressed
         let selectedModelIndices = [];
         let multiModelMode = 'parallel';
         let rotationIndex = 0;
@@ -2194,6 +2195,17 @@
         }
 
         function stopGeneration() {
+            // Set flag to prevent subsequent models from responding
+            userStoppedGeneration = true;
+
+            // Stop autonomous mode if running
+            if (isAutonomousRunning) {
+                isAutonomousRunning = false;
+                const autoBtn = document.getElementById('auto-btn');
+                autoBtn.textContent = 'Start Auto';
+                autoBtn.style.background = '#4a9eff';
+            }
+
             // Abort all ongoing requests
             currentAbortControllers.forEach(controller => {
                 try {
@@ -2251,6 +2263,7 @@
 
             // Start streaming response
             isStreaming = true;
+            userStoppedGeneration = false; // Reset the stop flag for new message
             currentAbortControllers = [];
             showStopButton();
             startBackgroundAudio(); // Keep iOS active during generation
@@ -2340,6 +2353,12 @@
             // Models answer sequentially, each seeing previous responses, repeated for iterationCount times
             for (let iteration = 0; iteration < iterationCount; iteration++) {
                 for (let i = 0; i < selectedModelIndices.length; i++) {
+                    // Check if user stopped generation
+                    if (userStoppedGeneration) {
+                        console.log('User stopped generation, breaking out of serial mode');
+                        return;
+                    }
+
                     const modelIndex = selectedModelIndices[i];
                     const model = models[modelIndex];
                     const assistantMessage = {
@@ -2386,6 +2405,12 @@
 
                 // Process in rotated order
                 for (let i = 0; i < orderedIndices.length; i++) {
+                    // Check if user stopped generation
+                    if (userStoppedGeneration) {
+                        console.log('User stopped generation, breaking out of rotating mode');
+                        return;
+                    }
+
                     const modelIndex = orderedIndices[i];
                     const model = models[modelIndex];
                     const assistantMessage = {
@@ -2425,6 +2450,12 @@
         }
 
         async function handleAutonomousRound() {
+            // Check if user stopped generation
+            if (userStoppedGeneration || !isAutonomousRunning) {
+                console.log('User stopped generation or autonomous mode ended');
+                return;
+            }
+
             // In autonomous mode, models converse with each other in rotating order
             const orderedIndices = [...selectedModelIndices];
 
@@ -3332,6 +3363,7 @@ You should respond directly with your message content - do NOT add extra formatt
 
             // Start streaming response (same logic as sendMessage)
             isStreaming = true;
+            userStoppedGeneration = false; // Reset the stop flag for regeneration
             currentAbortControllers = [];
             showStopButton();
             startBackgroundAudio();
@@ -3429,6 +3461,7 @@ You should respond directly with your message content - do NOT add extra formatt
 
             // Regenerate the response
             isStreaming = true;
+            userStoppedGeneration = false; // Reset the stop flag
             currentAbortControllers = [];
             showStopButton();
             startBackgroundAudio(); // Keep iOS active during generation
