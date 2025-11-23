@@ -3819,9 +3819,9 @@ You should respond directly with your message content - do NOT add extra formatt
             processed = processed.replace(/\n+(<\/?(h[1-6]|ul|ol|blockquote|hr|pre)[^>]*>)/g, '$1');
             processed = processed.replace(/(<\/?(h[1-6]|ul|ol|blockquote|hr|pre)[^>]*>)\n+/g, '$1');
 
-            // Convert double+ newlines to <br> for paragraph spacing
+            // Convert double+ newlines to newline + <br> for paragraph spacing
             // (single newlines are already rendered by white-space: pre-wrap)
-            processed = processed.replace(/\n\n+/g, '<br>');
+            processed = processed.replace(/\n\n+/g, '\n<br>');
 
             return processed;
         }
