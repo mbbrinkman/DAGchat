@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
     <title>OpenRouter Multi-Model Chat</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <!-- PDF.js for PDF text extraction -->
     <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
     <script>
@@ -688,6 +685,18 @@
                             </select>
                         </div>
                     </div>
+                    <div class="mode-selector" style="margin-top: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="latex-rendering-checkbox" style="width: auto;">
+                            <span>Enable LaTeX rendering (loads external JS)</span>
+                        </label>
+                    </div>
+                    <div class="mode-selector" style="margin-top: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="markdown-rendering-checkbox" style="width: auto;">
+                            <span>Enable Markdown rendering (loads external JS)</span>
+                        </label>
+                    </div>
                     <button onclick="closeModelPicker()">Done</button>
                 </div>
             </div>
@@ -991,6 +1000,8 @@
         let enableBackgroundAudio = false; // Whether to play silent audio to keep app alive on iOS
         let enableExtendedThinking = false; // Whether to enable extended thinking/reasoning mode
         let thinkingEffort = 'high'; // Effort level for extended thinking: 'low', 'medium', or 'high'
+        let enableLatexRendering = false; // Whether to render LaTeX (loads KaTeX on-demand)
+        let enableMarkdownRendering = false; // Whether to render Markdown (loads snarkdown on-demand)
         let userIdentifier = 'Human'; // Customizable identifier for the user in multi-model conversations
         let availableModels = [];
         let filteredModels = [];
@@ -1005,6 +1016,9 @@
         // Initialize
         async function init() {
             await loadFromStorage();
+            // Load rendering libraries if previously enabled
+            if (enableLatexRendering) await loadKaTeX();
+            if (enableMarkdownRendering) await loadSnarkdown();
             setupEventListeners();
             updateModelSelect();
             updateModelsList();
@@ -1085,6 +1099,8 @@
                 enableModelIdentity = await loadData('enableModelIdentity', true);
                 enableBackgroundAudio = await loadData('enableBackgroundAudio', false);
                 enableExtendedThinking = await loadData('enableExtendedThinking', false);
+                enableLatexRendering = await loadData('enableLatexRendering', false);
+                enableMarkdownRendering = await loadData('enableMarkdownRendering', false);
                 thinkingEffort = await loadData('thinkingEffort', 'high');
                 userIdentifier = await loadData('userIdentifier', 'Human');
                 conversationHistory = await loadData('conversationHistory', []);
@@ -1111,6 +1127,8 @@
                     saveData('enableModelIdentity', enableModelIdentity),
                     saveData('enableBackgroundAudio', enableBackgroundAudio),
                     saveData('enableExtendedThinking', enableExtendedThinking),
+                    saveData('enableLatexRendering', enableLatexRendering),
+                    saveData('enableMarkdownRendering', enableMarkdownRendering),
                     saveData('thinkingEffort', thinkingEffort),
                     saveData('userIdentifier', userIdentifier),
                     saveData('conversationHistory', conversationHistory)
@@ -1305,6 +1323,32 @@
                 thinkingEffortSelect.addEventListener('change', (e) => {
                     thinkingEffort = e.target.value;
                     saveToStorage();
+                });
+            }
+
+            // LaTeX rendering checkbox
+            const latexRenderingCheckbox = document.getElementById('latex-rendering-checkbox');
+            if (latexRenderingCheckbox) {
+                latexRenderingCheckbox.addEventListener('change', async (e) => {
+                    enableLatexRendering = e.target.checked;
+                    if (enableLatexRendering) {
+                        await loadKaTeX();
+                    }
+                    saveToStorage();
+                    renderConversation();
+                });
+            }
+
+            // Markdown rendering checkbox
+            const markdownRenderingCheckbox = document.getElementById('markdown-rendering-checkbox');
+            if (markdownRenderingCheckbox) {
+                markdownRenderingCheckbox.addEventListener('change', async (e) => {
+                    enableMarkdownRendering = e.target.checked;
+                    if (enableMarkdownRendering) {
+                        await loadSnarkdown();
+                    }
+                    saveToStorage();
+                    renderConversation();
                 });
             }
 
@@ -1630,6 +1674,18 @@
             const thinkingEffortSelect = document.getElementById('thinking-effort');
             if (thinkingEffortSelect) {
                 thinkingEffortSelect.value = thinkingEffort;
+            }
+
+            // Set the LaTeX rendering checkbox
+            const latexRenderingCheckbox = document.getElementById('latex-rendering-checkbox');
+            if (latexRenderingCheckbox) {
+                latexRenderingCheckbox.checked = enableLatexRendering;
+            }
+
+            // Set the Markdown rendering checkbox
+            const markdownRenderingCheckbox = document.getElementById('markdown-rendering-checkbox');
+            if (markdownRenderingCheckbox) {
+                markdownRenderingCheckbox.checked = enableMarkdownRendering;
             }
 
             popup.style.display = 'flex';
@@ -3668,14 +3724,63 @@ You should respond directly with your message content - do NOT add extra formatt
             renderConversation();
         }
 
+        // Lazy-load KaTeX (CSS + JS)
+        let katexLoaded = false;
+        async function loadKaTeX() {
+            if (katexLoaded || typeof katex !== 'undefined') {
+                katexLoaded = true;
+                return;
+            }
+
+            // Load CSS
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
+            document.head.appendChild(link);
+
+            // Load JS
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+
+            katexLoaded = true;
+        }
+
+        // Lazy-load snarkdown
+        let snarkdownLoaded = false;
+        async function loadSnarkdown() {
+            if (snarkdownLoaded || typeof snarkdown !== 'undefined') {
+                snarkdownLoaded = true;
+                return;
+            }
+
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/snarkdown@2.0.0/dist/snarkdown.umd.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+
+            snarkdownLoaded = true;
+        }
+
         function renderMarkdownWithLatex(text) {
             if (!text) return '';
 
             // Escape HTML first
             let processed = escapeHtml(text);
 
-            // Mask code blocks AND inline code before LaTeX processing
-            // Use @@ delimiters and no underscores/asterisks to avoid markdown conflicts
+            // If neither rendering is enabled, just return escaped text
+            if (!enableLatexRendering && !enableMarkdownRendering) {
+                return processed;
+            }
+
+            // Mask code blocks before any processing
             const masks = [];
             processed = processed.replace(/```[\s\S]+?```/g, m => {
                 const id = masks.length;
@@ -3688,155 +3793,67 @@ You should respond directly with your message content - do NOT add extra formatt
                 return `@@XCODEX${id}@@`;
             });
 
-            // Now run LaTeX replacements on processed (no code in here)
-            // Render block LaTeX first - process all block formats before inline
-            // Format: \[ ... \] (standard LaTeX display math)
-            processed = processed.replace(/\\\[([\s\S]+?)\\\]/g, (match, latex) => {
-                try {
-                    return katex.renderToString(latex.trim(), { throwOnError: false, displayMode: true });
-                } catch (e) {
-                    return match;
-                }
-            });
-
-            // Format: $$ ... $$ (alternative display math)
-            processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (match, latex) => {
-                try {
-                    return katex.renderToString(latex.trim(), { throwOnError: false, displayMode: true });
-                } catch (e) {
-                    return match;
-                }
-            });
-
-            // Render inline LaTeX - process all inline formats
-            // Format: \( ... \) (standard LaTeX inline math)
-            processed = processed.replace(/\\\(([\s\S]+?)\\\)/g, (match, latex) => {
-                try {
-                    return katex.renderToString(latex.trim(), { throwOnError: false, displayMode: false });
-                } catch (e) {
-                    return match;
-                }
-            });
-
-            // Format: $ ... $ (alternative inline math)
-            processed = processed.replace(/\$([^\$\n]+)\$/g, (match, latex) => {
-                try {
-                    return katex.renderToString(latex, { throwOnError: false, displayMode: false });
-                } catch (e) {
-                    return match;
-                }
-            });
-
-            // Process markdown features (before unmasking code)
-
-            // Headings (h1-h6) - must be at start of line
-            processed = processed.replace(/^######\s+(.+)$/gm, '<h6 style="margin: 16px 0 8px 0; font-size: 1em; font-weight: 600;">$1</h6>');
-            processed = processed.replace(/^#####\s+(.+)$/gm, '<h5 style="margin: 16px 0 8px 0; font-size: 1.1em; font-weight: 600;">$1</h5>');
-            processed = processed.replace(/^####\s+(.+)$/gm, '<h4 style="margin: 16px 0 8px 0; font-size: 1.2em; font-weight: 600;">$1</h4>');
-            processed = processed.replace(/^###\s+(.+)$/gm, '<h3 style="margin: 16px 0 8px 0; font-size: 1.3em; font-weight: 600;">$1</h3>');
-            processed = processed.replace(/^##\s+(.+)$/gm, '<h2 style="margin: 16px 0 8px 0; font-size: 1.5em; font-weight: 600;">$1</h2>');
-            processed = processed.replace(/^#\s+(.+)$/gm, '<h1 style="margin: 16px 0 8px 0; font-size: 1.8em; font-weight: 600;">$1</h1>');
-
-            // Horizontal rules (---, ***, ___)
-            processed = processed.replace(/^(?:---|\*\*\*|___)\s*$/gm, '<hr style="margin: 16px 0; border: none; border-top: 1px solid #444;">');
-
-            // Blockquotes (>) - must be at start of line
-            processed = processed.replace(/^&gt;\s+(.+)$/gm, '<blockquote style="border-left: 3px solid #4a9eff; padding-left: 12px; margin: 8px 0; color: #aaa;">$1</blockquote>');
-
-            // Links [text](url)
-            processed = processed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color: #4a9eff; text-decoration: none;">$1</a>');
-
-            // Strikethrough ~~text~~
-            processed = processed.replace(/~~([^~]+)~~/g, '<del>$1</del>');
-
-            // Bold and italic - process bold first to avoid conflicts
-            // Use [\s\S] to match across newlines
-            processed = processed.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
-            processed = processed.replace(/__([\s\S]+?)__/g, '<strong>$1</strong>');
-            processed = processed.replace(/\*([\s\S]+?)\*/g, '<em>$1</em>');
-            processed = processed.replace(/_([^\s_][^_]*?)_/g, '<em>$1</em>');
-
-            // Process lists line by line to handle both ordered and unordered
-            let lines = processed.split('\n');
-            let result = [];
-            let inUnorderedList = false;
-            let inOrderedList = false;
-
-            for (let i = 0; i < lines.length; i++) {
-                let line = lines[i];
-
-                // Check for unordered list item (-, *, +)
-                const unorderedMatch = line.match(/^([*\-+])\s+(.+)$/);
-                if (unorderedMatch) {
-                    if (!inUnorderedList) {
-                        if (inOrderedList) {
-                            result.push('</ol>');
-                            inOrderedList = false;
-                        }
-                        result.push('<ul>');
-                        inUnorderedList = true;
+            // LaTeX rendering (if enabled and loaded)
+            if (enableLatexRendering && typeof katex !== 'undefined') {
+                // Block LaTeX: \[ ... \] and $$ ... $$
+                processed = processed.replace(/\\\[([\s\S]+?)\\\]/g, (match, latex) => {
+                    try {
+                        return katex.renderToString(latex.trim(), { throwOnError: false, displayMode: true });
+                    } catch (e) {
+                        return match;
                     }
-                    result.push(`<li>${unorderedMatch[2]}</li>`);
-                    continue;
-                }
-
-                // Check for ordered list item (1., 2., etc.)
-                const orderedMatch = line.match(/^\d+\.\s+(.+)$/);
-                if (orderedMatch) {
-                    if (!inOrderedList) {
-                        if (inUnorderedList) {
-                            result.push('</ul>');
-                            inUnorderedList = false;
-                        }
-                        result.push('<ol>');
-                        inOrderedList = true;
+                });
+                processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (match, latex) => {
+                    try {
+                        return katex.renderToString(latex.trim(), { throwOnError: false, displayMode: true });
+                    } catch (e) {
+                        return match;
                     }
-                    result.push(`<li>${orderedMatch[1]}</li>`);
-                    continue;
-                }
-
-                // Not a list item - close any open lists
-                if (inUnorderedList) {
-                    result.push('</ul>');
-                    inUnorderedList = false;
-                }
-                if (inOrderedList) {
-                    result.push('</ol>');
-                    inOrderedList = false;
-                }
-                result.push(line);
+                });
+                // Inline LaTeX: \( ... \) and $ ... $
+                processed = processed.replace(/\\\(([\s\S]+?)\\\)/g, (match, latex) => {
+                    try {
+                        return katex.renderToString(latex.trim(), { throwOnError: false, displayMode: false });
+                    } catch (e) {
+                        return match;
+                    }
+                });
+                processed = processed.replace(/\$([^\$\n]+)\$/g, (match, latex) => {
+                    try {
+                        return katex.renderToString(latex, { throwOnError: false, displayMode: false });
+                    } catch (e) {
+                        return match;
+                    }
+                });
             }
 
-            // Close any remaining open lists
-            if (inUnorderedList) result.push('</ul>');
-            if (inOrderedList) result.push('</ol>');
+            // Markdown rendering (if enabled and loaded)
+            if (enableMarkdownRendering && typeof snarkdown !== 'undefined') {
+                // Snarkdown expects unescaped input, but we've already escaped
+                // We need to unescape, run snarkdown, then it will produce safe HTML
+                // Actually snarkdown doesn't escape, so we keep our escaping and just run it
+                // But snarkdown expects raw markdown... let's unescape temporarily
+                const unescaped = processed
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>')
+                    .replace(/&amp;/g, '&')
+                    .replace(/&quot;/g, '"')
+                    .replace(/&#039;/g, "'");
+                processed = snarkdown(unescaped);
+            }
 
-            processed = result.join('\n');
-
-            // Restore masked code (converts to proper HTML)
+            // Restore masked code blocks
             processed = processed.replace(/@@XCODEX(\d+)@@/g, (_, i) => {
                 const masked = masks[+i];
-                // Process code blocks
                 if (masked.startsWith('```')) {
                     const content = masked.slice(3, -3);
-                    return '<pre style="background: #2a2a2a; padding: 12px; border-radius: 6px; overflow-x: auto; margin: 8px 0;">' + content + '</pre>';
-                }
-                // Process inline code
-                else if (masked.startsWith('`')) {
+                    return '<pre style="background: #2a2a2a; padding: 12px; border-radius: 6px; overflow-x: auto; margin: 8px 0;">' + escapeHtml(content) + '</pre>';
+                } else if (masked.startsWith('`')) {
                     const content = masked.slice(1, -1);
-                    return '<code style="background: #3a3a3a; padding: 2px 6px; border-radius: 3px;">' + content + '</code>';
+                    return '<code style="background: #3a3a3a; padding: 2px 6px; border-radius: 3px;">' + escapeHtml(content) + '</code>';
                 }
                 return masked;
             });
-
-            // Clean up excessive newlines around block elements
-            // Remove newlines before/after block elements to prevent double spacing
-            processed = processed.replace(/\n+(<\/?(h[1-6]|ul|ol|li|blockquote|hr|pre)[^>]*>)/g, '$1');
-            processed = processed.replace(/(<\/?(h[1-6]|ul|ol|li|blockquote|hr|pre)[^>]*>)\n+/g, '$1');
-
-            // Convert double+ newlines to newline + <br> for paragraph spacing
-            // (single newlines are already rendered by white-space: pre-wrap)
-            processed = processed.replace(/\n\n+/g, '\n<br>');
 
             return processed;
         }
