@@ -3850,10 +3850,7 @@ You should respond directly with your message content - do NOT add extra formatt
 
             // Markdown rendering (if enabled and loaded)
             if (enableMarkdownRendering && typeof snarkdown !== 'undefined') {
-                // Snarkdown expects unescaped input, but we've already escaped
-                // We need to unescape, run snarkdown, then it will produce safe HTML
-                // Actually snarkdown doesn't escape, so we keep our escaping and just run it
-                // But snarkdown expects raw markdown... let's unescape temporarily
+                // Snarkdown expects unescaped input
                 const unescaped = processed
                     .replace(/&lt;/g, '<')
                     .replace(/&gt;/g, '>')
@@ -3861,6 +3858,8 @@ You should respond directly with your message content - do NOT add extra formatt
                     .replace(/&quot;/g, '"')
                     .replace(/&#039;/g, "'");
                 processed = snarkdown(unescaped);
+                // Snarkdown doesn't preserve newlines well - convert to <br>
+                processed = processed.replace(/\n/g, '<br>');
             }
 
             // Restore masked code blocks
