@@ -3807,6 +3807,13 @@ You should respond directly with your message content - do NOT add extra formatt
                 return `@@XCODEX${id}@@`;
             });
 
+            // Mask [Thinking: ...] blocks (models may mimic this format from history)
+            processed = processed.replace(/\[Thinking:[\s\S]+?\]/g, m => {
+                const id = masks.length;
+                masks.push(m);
+                return `@@XCODEX${id}@@`;
+            });
+
             // LaTeX rendering (if enabled and loaded)
             if (enableLatexRendering && typeof katex !== 'undefined') {
                 // Block LaTeX: \[ ... \] and $$ ... $$
