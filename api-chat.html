@@ -2726,7 +2726,11 @@
             // Add model identity information if enabled and in multi-model mode
             if (enableModelIdentity && selectedModelIndices.length > 1 && model.name) {
                 const sanitizedName = sanitizeModelName(model.name);
-                systemPrompt = `You are ${sanitizedName}. This is your chat identifier in this conversation - it's simply a name to distinguish you from other participants (there may be multiple instances of the same underlying model with different chat names). You must always respond as ${sanitizedName}, not as any other participant.\n\n`;
+                systemPrompt = `You are ${sanitizedName}. This is your identity in this conversation. You must ONLY respond as ${sanitizedName} - never simulate, roleplay, or speak as any other participant.
+
+CRITICAL: Do NOT mimic, impersonate, or generate responses for other participants. When you see messages from other models in the history, those are THEIR responses - do not continue their patterns, adopt their style, or pretend to be them. Your response should reflect YOUR unique perspective and capabilities, not theirs.
+
+`;
 
                 // Build list of all participants (treating everyone equally)
                 const allParticipants = [];
@@ -2752,11 +2756,17 @@
                 }
 
                 if (allParticipants.length > 0) {
-                    systemPrompt += `You are conversing with the following participants: ${allParticipants.join(', ')}.
+                    systemPrompt += `You are conversing with: ${allParticipants.join(', ')}.
 
-IMPORTANT: This is a multi-participant conversation where all participants are equal. When you see a message that starts with "X said: ...", that message is FROM participant X. You should treat "${allParticipants[0]} said: hello" and "${sanitizedName} said: hello" with the same structure - these are all participants in the conversation. All participants (${allParticipants.join(', ')}) should be treated equally.
+Messages in the format "X said: ..." are FROM participant X - this is conversation history, not a prompt to continue as X. You are ${sanitizedName}. Respond only as yourself.
 
-You should respond directly with your message content - do NOT add extra formatting, labels, prefixes, or leading newlines before your response. Simply start your response immediately with your first word. You should respond as ${sanitizedName}, not as any other participant. Note that some chat participants may be different instances of the same underlying model as you, distinguished only by their chat identifier.\n\n`;
+Do NOT:
+- Generate responses on behalf of other participants
+- Adopt the speaking style or quirks of other models you see in history
+- Prefix your response with "${sanitizedName} said:" or any label
+- Add extra formatting or leading newlines
+
+Simply respond directly as ${sanitizedName} with your own authentic perspective.\n\n`;
                 }
             }
 
