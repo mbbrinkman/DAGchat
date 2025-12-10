@@ -3429,7 +3429,10 @@ Simply respond directly as ${sanitizedName} with your own authentic perspective.
                         }
                     }
 
-                    contentHtml += `<div class="message-content">${rendered}</div>`;
+                    // Only render message-content div if there's actual content
+                    if (rendered) {
+                        contentHtml += `<div class="message-content">${rendered}</div>`;
+                    }
 
                     // Render received images
                     if (msg.images && msg.images.length > 0) {
@@ -3868,8 +3871,9 @@ Simply respond directly as ${sanitizedName} with your own authentic perspective.
                     .replace(/&quot;/g, '"')
                     .replace(/&#039;/g, "'");
                 processed = snarkdown(unescaped);
-                // Snarkdown doesn't preserve newlines well - convert to <br>
-                processed = processed.replace(/\n/g, '<br>');
+                // Convert remaining newlines to <br>, but not after block elements
+                // (snarkdown handles paragraph structure, we just need inline breaks)
+                processed = processed.replace(/([^>])\n/g, '$1<br>');
             }
 
             // Restore masked code blocks
