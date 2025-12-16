@@ -340,6 +340,42 @@
             border-color: #4a9eff;
         }
 
+        #message-input.editing {
+            border-color: #f0ad4e;
+            background: #2a2518;
+        }
+
+        #edit-indicator {
+            display: none;
+            background: #f0ad4e;
+            color: #1a1a1a;
+            padding: 8px 12px;
+            border-radius: 8px 8px 0 0;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: -1px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #edit-indicator.visible {
+            display: flex;
+        }
+
+        #edit-indicator button {
+            background: transparent;
+            border: 1px solid #1a1a1a;
+            color: #1a1a1a;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        #edit-indicator button:hover {
+            background: rgba(0,0,0,0.1);
+        }
+
         .file-upload-btn, .model-select, #send-btn {
             background: #3a3a3a;
             border: 1px solid #4a4a4a;
@@ -618,6 +654,10 @@
                     <button class="file-upload-btn" onclick="document.getElementById('file-input').click()">Attach</button>
                     <button class="model-select" id="model-picker-btn">Select Models</button>
                     <button class="model-select" onclick="newChat()">New Chat</button>
+                </div>
+                <div id="edit-indicator">
+                    <span>Editing message...</span>
+                    <button onclick="cancelEditMode()">Cancel</button>
                 </div>
                 <textarea id="message-input" placeholder="Type a message... (Click Send button to send)"></textarea>
                 <div class="send-controls">
@@ -2437,6 +2477,7 @@
                 currentConversation = currentConversation.slice(0, editingMessageIndex);
                 currentConversation.push(userMessage);
                 editingMessageIndex = null;
+                showEditIndicator(false);
             } else {
                 currentConversation.push(userMessage);
             }
@@ -3377,8 +3418,8 @@ Simply respond directly as ${sanitizedName} with your own authentic perspective.
                     const rendered = isPromotedThinking ? '' : renderMarkdownWithLatex(msg.content);
                     let contentHtml = '';
 
-                    // Show model name if multiple models are selected
-                    if (msg.modelName && selectedModelIndices.length > 1) {
+                    // Show model name for all assistant messages
+                    if (msg.modelName) {
                         contentHtml += `<div style="font-size: 12px; color: #888; margin-bottom: 8px; font-weight: 600;">${escapeHtml(msg.modelName)}</div>`;
                     }
 
@@ -3480,14 +3521,41 @@ Simply respond directly as ${sanitizedName} with your own authentic perspective.
 
         function editMessage(index) {
             const msg = currentConversation[index];
-            document.getElementById('message-input').value = msg.content;
+            const input = document.getElementById('message-input');
+            input.value = msg.content;
             editingMessageIndex = index;
+
+            // Show edit indicator
+            showEditIndicator(true);
 
             // Load files if any
             if (msg.files) {
                 attachedFiles = [...msg.files];
                 renderAttachedFiles();
             }
+
+            // Focus the input
+            input.focus();
+        }
+
+        function showEditIndicator(show) {
+            const indicator = document.getElementById('edit-indicator');
+            const input = document.getElementById('message-input');
+            if (show) {
+                indicator.classList.add('visible');
+                input.classList.add('editing');
+            } else {
+                indicator.classList.remove('visible');
+                input.classList.remove('editing');
+            }
+        }
+
+        function cancelEditMode() {
+            editingMessageIndex = null;
+            document.getElementById('message-input').value = '';
+            attachedFiles = [];
+            renderAttachedFiles();
+            showEditIndicator(false);
         }
 
         function editUserMessageInline(index) {
@@ -3616,6 +3684,7 @@ Simply respond directly as ${sanitizedName} with your own authentic perspective.
             editingMessageIndex = null;
             attachedFiles = [];
             renderAttachedFiles();
+            showEditIndicator(false);
             renderConversation();
         }
 
@@ -4002,6 +4071,7 @@ Simply respond directly as ${sanitizedName} with your own authentic perspective.
             currentConversation = [];
             attachedFiles = [];
             editingMessageIndex = null;
+            showEditIndicator(false);
             saveToStorage();
             renderConversation();
             renderHistory();
@@ -4023,6 +4093,7 @@ Simply respond directly as ${sanitizedName} with your own authentic perspective.
             currentConversation = [];
             attachedFiles = [];
             editingMessageIndex = null;
+            showEditIndicator(false);
             saveToStorage();
             renderConversation();
             renderHistory();
