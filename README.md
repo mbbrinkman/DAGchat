@@ -2,6 +2,8 @@
 
 A single-file web application for orchestrating multi-model AI conversations using a visual DAG (Directed Acyclic Graph) interface. Build complex workflows where models can debate, critique, synthesize, and collaborate.
 
+**[Try the Live Demo](https://mbbrinkman.github.io/DAGchat/DAGchat.html)**
+
 ## Features
 
 ### Visual DAG Editor
