@@ -1,123 +1,118 @@
-# OpenRouter Multi-Model Chat
+# DAGchat
 
-A single-file web application for chatting with multiple AI models simultaneously through OpenRouter's unified API.
-
-## Live Demo
-
-https://mbbrinkman.github.io/my_api_chat/api-chat.html
+A single-file web application for orchestrating multi-model AI conversations using a visual DAG (Directed Acyclic Graph) interface. Build complex workflows where models can debate, critique, synthesize, and collaborate.
 
 ## Features
 
-### Multi-Model Conversation Modes
-- **Parallel**: All selected models respond independently to each message
-- **Serial**: Models respond sequentially, each seeing previous model responses
-- **Rotating**: Serial mode with model order rotation on each turn
-- **Autonomous**: Models converse with each other without user input
+### Visual DAG Editor
+- **Drag-and-drop node creation** - Add model nodes and position them visually
+- **Edge drawing** - Connect nodes by dragging from output to input ports
+- **Cycle detection** - Prevents invalid circular dependencies
+- **Templates** - Pre-built patterns: Chain, Parallel, Diamond, Debate, Critic Loop, Ensemble
 
-### Core Functionality
+### Multi-Model Orchestration
+- **Sequential processing** - Chain models where each sees the previous output
+- **Parallel execution** - Multiple models process the same input simultaneously
+- **Merging outputs** - Combine results from multiple upstream models
+- **Context modes** - Control what each node sees (inputs only, inputs + user message, full history)
+
+### Workflow Patterns
+
+| Template | Description |
+|----------|-------------|
+| **Single** | Basic single-model chat |
+| **Chain** | A → B → C sequential processing |
+| **Parallel** | Multiple models respond independently |
+| **Diamond** | Split → parallel paths → merge |
+| **Debate** | Two models argue, third judges |
+| **Critic Loop** | Draft → Critique → Refine |
+| **Ensemble** | Three models + synthesizer |
+
+### Node Configuration
+- **Model selection** - Assign any configured model to each node
+- **System prompts** - Per-node or inherited from DAG-level settings
+- **Context mode** - inputs-only, inputs-plus-user, or full-history
+- **Reasoning stripping** - Remove chain-of-thought from forwarded output
+- **Terminal node** - Designate which node's output goes to the user
+
+### Core Features
 - Real-time streaming responses
-- Message and response editing
-- Conversation branching (edit past messages to explore alternatives)
-- Image attachments for sending to vision models
-- Image generation support (receive images from image generation models)
-- Model browser (fetch, search, and sort all available OpenRouter models)
-- Configurable system prompts (per-model or global override)
-- IndexedDB storage for unlimited conversations with images (50 MB to several GB)
-- Export/import functionality for data backup
-- Mobile-friendly with reliable image support on iPhone/iPad
+- Message editing and regeneration
+- Conversation history with search
+- File attachments (images, PDFs, text files)
+- Extended thinking/reasoning support
+- LaTeX math rendering (KaTeX)
+- Markdown formatting
 
-### Model Configuration
-- Full access to OpenRouter API parameters including temperature, top_p, max_tokens, frequency/presence penalties, and provider-specific options
-- Saved model presets for reuse
-- Multiple API key management
-- Reusable system prompt library
+### Keyboard Shortcuts
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+Z` | Undo DAG operation |
+| `Ctrl+Y` / `Ctrl+Shift+Z` | Redo |
+| `Ctrl+C` | Copy selected node |
+| `Ctrl+V` | Paste node |
+| `Delete` / `Backspace` | Delete selected node |
+| `Escape` | Deselect / close panels |
 
 ## Setup
 
-1. Open the application at https://mbbrinkman.github.io/my_api_chat/api-chat.html
-2. Create an OpenRouter account and obtain an API key at https://openrouter.ai/keys
-3. In Settings, add your API key
-4. Browse available models using the model browser, or manually add a model configuration
-5. Select your model(s) and start chatting
-
-### Using the Model Browser
-
-1. Go to Settings tab
-2. Scroll to "Browse OpenRouter Models"
-3. Click "Load Models" to fetch the live catalog
-4. Search by name, ID, or description
-5. Sort by date (newest first), name, or context length
-6. Click any model to auto-populate the Add New Model form
-7. Edit configuration if needed and click "Add Model"
-
-The browser displays context length, pricing per million tokens, and release date for each model.
+1. Download `DAGchat.html`
+2. Open in any modern browser
+3. Go to Settings tab
+4. Add your OpenRouter API key
+5. Browse and add models
+6. Switch to DAG tab and build your workflow
+7. Start chatting!
 
 ## OpenRouter Integration
 
-This application uses OpenRouter as the sole API provider, which provides unified access to models from multiple providers including Anthropic, OpenAI, Google, Meta, Mistral, and others. See https://openrouter.ai/models for the complete model catalog.
+DAGchat uses [OpenRouter](https://openrouter.ai) for unified access to models from Anthropic, OpenAI, Google, Meta, Mistral, and more.
 
-Example model IDs:
-- anthropic/claude-3.5-sonnet
-- openai/gpt-4-turbo
-- google/gemini-pro-1.5
-- meta-llama/llama-3.1-70b-instruct
+Example models:
+- `anthropic/claude-sonnet-4-20250514`
+- `openai/gpt-4o`
+- `google/gemini-2.0-flash-exp`
+- `meta-llama/llama-3.3-70b-instruct`
 
 ## Technical Details
 
-- Single HTML file application (~2800 lines)
-- No build process or dependencies required
-- Client-side JavaScript only
-- Uses KaTeX (via CDN) for LaTeX math rendering
-- Custom markdown rendering for bold, italic, code blocks
-- IndexedDB for data persistence (50 MB to several GB storage)
-- Supports all modern browsers including mobile (iPhone/iPad tested)
+- **Single HTML file** (~4000 lines, ~115KB)
+- **No build process** - Just open and run
+- **No dependencies** - CDN-loaded optional libraries (KaTeX, Snarkdown, PDF.js)
+- **Client-side only** - All data stored locally in IndexedDB
+- **Mobile-friendly** - Touch support for DAG editing
 
 ## Privacy
 
-All data is stored locally in your browser using IndexedDB. No information is sent to any server except OpenRouter API calls for model responses. API keys, conversations, and all settings remain private on your device.
+All data stays in your browser. Nothing is sent anywhere except your API calls to OpenRouter. API keys, conversations, and DAG configurations are stored locally in IndexedDB.
 
-## Image Generation
+## Architecture
 
-The application supports receiving images from image generation models on OpenRouter:
-
-1. Add a model with "image" in its output modalities (filter by output modality on openrouter.ai/models)
-2. Request image generation in your message (e.g., "generate an image of a sunset")
-3. Generated images appear automatically in the conversation
-4. Multiple images per response are supported
-5. Images are displayed inline with full-width responsive sizing
-
-Images are returned as base64-encoded data URLs and stored in the conversation history.
-
-## Configuration Parameters
-
-The application supports all OpenRouter API parameters:
-
-- temperature: Response randomness (0.0-2.0)
-- max_tokens: Maximum response length
-- top_p: Nucleus sampling threshold
-- top_k: Token sampling limit
-- frequency_penalty: Penalize repeated tokens (-2.0 to 2.0)
-- presence_penalty: Penalize topic repetition (-2.0 to 2.0)
-- repetition_penalty: Alternative repetition control
-- min_p: Minimum probability threshold
-- top_a: Adaptive sampling
-- seed: Deterministic output
-- logit_bias: Token probability adjustment
-- response_format: Structured output control
-- provider: Force specific provider
-- transforms: Content filtering
-- reasoning: Enable extended thinking/reasoning
-
-See OpenRouter documentation for parameter details: https://openrouter.ai/docs
+```
+User Input
+    ↓
+┌─────────────────────────────────────┐
+│         DAG Execution Engine        │
+│  ┌─────┐    ┌─────┐    ┌─────┐     │
+│  │Node │ →  │Node │ →  │Node │     │
+│  │  A  │    │  B  │    │  C  │     │
+│  └─────┘    └─────┘    └─────┘     │
+│      ↘          ↓          ↙       │
+│         Topological Sort            │
+│         Context Building            │
+│         Output Transform            │
+└─────────────────────────────────────┘
+    ↓
+Terminal Node Output → User
+```
 
 ## License
 
 CC0 1.0 Universal - Public Domain Dedication
 
-This work is released into the public domain. You can copy, modify, distribute and perform the work, even for commercial purposes, without asking permission.
-
 ## Credits
 
-- OpenRouter API: https://openrouter.ai
-- KaTeX: https://katex.org
-
+- [OpenRouter](https://openrouter.ai) - Unified LLM API
+- [KaTeX](https://katex.org) - LaTeX rendering
+- [Snarkdown](https://github.com/developit/snarkdown) - Markdown parsing
+- [PDF.js](https://mozilla.github.io/pdf.js/) - PDF text extraction
