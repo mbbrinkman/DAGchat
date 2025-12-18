@@ -1078,12 +1078,328 @@
             .dag-node {
                 min-width: 100px;
             }
+
+            .dag-port {
+                width: 20px;
+                height: 20px;
+            }
+
+            #dag-toolbar {
+                padding: 8px;
+                gap: 6px;
+            }
+
+            #dag-toolbar button, #dag-toolbar select {
+                padding: 10px 8px;
+                font-size: 12px;
+            }
+
+            .dag-zoom-controls {
+                bottom: 10px;
+                right: 10px;
+            }
+
+            .dag-zoom-controls button {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+        }
+
+        /* Demo Link */
+        .demo-link {
+            margin-left: auto;
+            padding: 12px 16px;
+            color: #4aff9e;
+            text-decoration: none;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+        }
+
+        .demo-link:hover {
+            color: #7affb8;
+            text-decoration: underline;
+        }
+
+        /* DAG Zoom Controls */
+        .dag-zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 100;
+        }
+
+        .dag-zoom-controls button {
+            width: 36px;
+            height: 36px;
+            background: #2a2a2a;
+            border: 1px solid #4a4a4a;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dag-zoom-controls button:hover {
+            background: #3a3a3a;
+        }
+
+        .dag-zoom-controls button:active {
+            background: #4a4a4a;
+        }
+
+        .dag-zoom-level {
+            text-align: center;
+            font-size: 11px;
+            color: #888;
+            padding: 2px 0;
+        }
+
+        /* DAG Canvas Transform */
+        #dag-canvas-wrapper {
+            transform-origin: 0 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+            min-width: 100%;
+            min-height: 100%;
+        }
+
+        #dag-canvas-container.panning {
+            cursor: grab;
+        }
+
+        #dag-canvas-container.panning:active {
+            cursor: grabbing;
+        }
+
+        /* Help Overlay */
+        .dag-help-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .dag-help-overlay.open {
+            display: flex;
+        }
+
+        .dag-help-content {
+            background: #2a2a2a;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .dag-help-header {
+            padding: 16px 20px;
+            background: #3a3a3a;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+        }
+
+        .dag-help-header h3 {
+            margin: 0;
+            color: #4a9eff;
+        }
+
+        .dag-help-body {
+            padding: 20px;
+        }
+
+        .dag-help-section {
+            margin-bottom: 20px;
+        }
+
+        .dag-help-section h4 {
+            color: #4aff9e;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .dag-help-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .dag-help-section li {
+            padding: 8px 0;
+            border-bottom: 1px solid #3a3a3a;
+            display: flex;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .dag-help-section li:last-child {
+            border-bottom: none;
+        }
+
+        .dag-help-key {
+            background: #3a3a3a;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: nowrap;
+            color: #4a9eff;
+        }
+
+        .dag-help-action {
+            color: #aaa;
+        }
+
+        /* Toolbar help button */
+        #dag-toolbar .help-btn {
+            background: #3a5a3a;
+            border-color: #4a7a4a;
+        }
+
+        #dag-toolbar .help-btn:hover {
+            background: #4a7a4a;
+        }
+
+        /* Delete button styling */
+        #dag-toolbar .delete-btn {
+            background: #5a3a3a;
+            border-color: #7a4a4a;
+        }
+
+        #dag-toolbar .delete-btn:hover {
+            background: #7a4a4a;
+        }
+
+        #dag-toolbar .delete-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Context menu for edges */
+        .dag-edge-menu {
+            position: fixed;
+            background: #2a2a2a;
+            border: 1px solid #4a4a4a;
+            border-radius: 6px;
+            padding: 4px 0;
+            z-index: 1000;
+            min-width: 120px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .dag-edge-menu button {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            background: none;
+            border: none;
+            color: #e0e0e0;
+            text-align: left;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .dag-edge-menu button:hover {
+            background: #3a3a3a;
+        }
+
+        .dag-edge-menu button.danger {
+            color: #ff6b6b;
         }
     </style>
 </head>
 <body>
     <!-- Toast Container -->
     <div id="toast-container" class="toast-container"></div>
+
+    <!-- DAG Help Overlay -->
+    <div id="dag-help-overlay" class="dag-help-overlay" onclick="if(event.target === this) closeDagHelp()">
+        <div class="dag-help-content">
+            <div class="dag-help-header">
+                <h3>DAG Editor Help</h3>
+                <button onclick="closeDagHelp()" style="background: none; border: none; color: #888; font-size: 20px; cursor: pointer;">×</button>
+            </div>
+            <div class="dag-help-body">
+                <div class="dag-help-section">
+                    <h4>Creating Nodes</h4>
+                    <ul>
+                        <li><span class="dag-help-key">+ Add Node</span><span class="dag-help-action">Create a new model node</span></li>
+                        <li><span class="dag-help-key">Templates</span><span class="dag-help-action">Load pre-built workflow patterns</span></li>
+                    </ul>
+                </div>
+                <div class="dag-help-section">
+                    <h4>Editing Nodes</h4>
+                    <ul>
+                        <li><span class="dag-help-key">Click</span><span class="dag-help-action">Select a node</span></li>
+                        <li><span class="dag-help-key">Double-click</span><span class="dag-help-action">Open node settings</span></li>
+                        <li><span class="dag-help-key">Drag</span><span class="dag-help-action">Move a node</span></li>
+                        <li><span class="dag-help-key">Delete / Backspace</span><span class="dag-help-action">Delete selected node</span></li>
+                        <li><span class="dag-help-key">Delete Node button</span><span class="dag-help-action">Delete selected node (mobile-friendly)</span></li>
+                    </ul>
+                </div>
+                <div class="dag-help-section">
+                    <h4>Creating Connections (Edges)</h4>
+                    <ul>
+                        <li><span class="dag-help-key">Drag from green port</span><span class="dag-help-action">Start drawing an edge from output</span></li>
+                        <li><span class="dag-help-key">Drop on blue port</span><span class="dag-help-action">Connect to another node's input</span></li>
+                        <li><span class="dag-help-key">Click edge</span><span class="dag-help-action">Delete the connection</span></li>
+                    </ul>
+                </div>
+                <div class="dag-help-section">
+                    <h4>Navigation</h4>
+                    <ul>
+                        <li><span class="dag-help-key">Mouse wheel</span><span class="dag-help-action">Zoom in/out</span></li>
+                        <li><span class="dag-help-key">Pinch (touch)</span><span class="dag-help-action">Zoom in/out on mobile</span></li>
+                        <li><span class="dag-help-key">Two-finger drag</span><span class="dag-help-action">Pan the canvas on mobile</span></li>
+                        <li><span class="dag-help-key">Middle-click drag</span><span class="dag-help-action">Pan the canvas</span></li>
+                        <li><span class="dag-help-key">+ / − buttons</span><span class="dag-help-action">Zoom controls</span></li>
+                        <li><span class="dag-help-key">⟲ button</span><span class="dag-help-action">Reset zoom and pan</span></li>
+                        <li><span class="dag-help-key">⊡ button</span><span class="dag-help-action">Fit all nodes to view</span></li>
+                    </ul>
+                </div>
+                <div class="dag-help-section">
+                    <h4>Keyboard Shortcuts</h4>
+                    <ul>
+                        <li><span class="dag-help-key">Ctrl+Z</span><span class="dag-help-action">Undo</span></li>
+                        <li><span class="dag-help-key">Ctrl+Y</span><span class="dag-help-action">Redo</span></li>
+                        <li><span class="dag-help-key">Ctrl+C</span><span class="dag-help-action">Copy selected node</span></li>
+                        <li><span class="dag-help-key">Ctrl+V</span><span class="dag-help-action">Paste node</span></li>
+                        <li><span class="dag-help-key">Escape</span><span class="dag-help-action">Deselect / close panels</span></li>
+                    </ul>
+                </div>
+                <div class="dag-help-section">
+                    <h4>Node Ports</h4>
+                    <ul>
+                        <li><span class="dag-help-key" style="background: #4a9eff;">Blue port</span><span class="dag-help-action">Input - receives data from other nodes</span></li>
+                        <li><span class="dag-help-key" style="background: #4aff9e; color: #1a1a1a;">Green port</span><span class="dag-help-action">Output - sends data to other nodes</span></li>
+                        <li><span class="dag-help-key" style="background: #9a4aff;">★ Purple star</span><span class="dag-help-action">Terminal node - output shown to user</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Edit Modal -->
     <div id="edit-modal" class="modal-overlay">
@@ -1107,6 +1423,7 @@
         <button class="tab" data-tab="dag">DAG</button>
         <button class="tab" data-tab="history">History</button>
         <button class="tab" data-tab="settings">Settings</button>
+        <a href="https://mbbrinkman.github.io/DAGchat/DAGchat.html" target="_blank" class="demo-link" title="Open Demo">Demo</a>
     </div>
 
     <div id="chat-tab" class="tab-content active">
@@ -1137,6 +1454,7 @@
         <div id="dag-editor-container">
             <div id="dag-toolbar">
                 <button onclick="addDagNode()">+ Add Node</button>
+                <button id="delete-node-btn" class="delete-btn" onclick="deleteSelectedNode()" disabled>Delete Node</button>
                 <select id="dag-template-select" onchange="loadDagTemplate(this.value)">
                     <option value="">Templates...</option>
                     <option value="single">Single Model</option>
@@ -1147,17 +1465,28 @@
                     <option value="critic">Critic Loop</option>
                     <option value="ensemble">Ensemble (3-way)</option>
                 </select>
+                <button onclick="autoLayoutDag()">Auto Layout</button>
                 <div class="toggle-switch">
                     <input type="checkbox" id="dag-rotation-toggle" onchange="toggleDagRotation()">
                     <label for="dag-rotation-toggle">Rotation</label>
                 </div>
                 <button onclick="openDagSettings()">⚙ Settings</button>
-                <button onclick="exportDag()">Export DAG</button>
-                <button onclick="importDag()">Import DAG</button>
-                <button onclick="clearDag()" style="margin-left: auto;">Clear DAG</button>
+                <button onclick="exportDag()">Export</button>
+                <button onclick="importDag()">Import</button>
+                <button class="help-btn" onclick="openDagHelp()">? Help</button>
+                <button onclick="clearDag()" style="margin-left: auto;">Clear</button>
             </div>
             <div id="dag-canvas-container">
-                <svg id="dag-canvas"></svg>
+                <div id="dag-canvas-wrapper">
+                    <svg id="dag-canvas"></svg>
+                </div>
+                <div class="dag-zoom-controls">
+                    <button onclick="zoomDag(0.1)" title="Zoom In">+</button>
+                    <div class="dag-zoom-level" id="dag-zoom-level">100%</div>
+                    <button onclick="zoomDag(-0.1)" title="Zoom Out">−</button>
+                    <button onclick="resetDagView()" title="Reset View" style="margin-top: 4px; font-size: 12px;">⟲</button>
+                    <button onclick="fitDagToView()" title="Fit to View" style="font-size: 12px;">⊡</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1596,6 +1925,24 @@
 
             // Double-click to edit node
             canvas.addEventListener('dblclick', handleCanvasDoubleClick);
+
+            // Zoom with mouse wheel
+            canvas.addEventListener('wheel', handleDagWheel, { passive: false });
+
+            // Pan with middle mouse button
+            canvas.addEventListener('mousedown', startPanning);
+            canvas.addEventListener('mousemove', handlePanning);
+            canvas.addEventListener('mouseup', stopPanning);
+            canvas.addEventListener('mouseleave', stopPanning);
+
+            // Touch pinch-to-zoom and two-finger pan
+            canvas.addEventListener('touchstart', handleDagTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleDagTouchMove, { passive: false });
+
+            // Prevent context menu on middle click
+            canvas.addEventListener('contextmenu', (e) => {
+                if (e.button === 1) e.preventDefault();
+            });
         }
 
         function switchTab(tabName) {
@@ -1626,12 +1973,16 @@
             const container = document.getElementById('dag-canvas-container');
             const rect = container.getBoundingClientRect();
 
+            // Position in the center of current view, accounting for zoom/pan
+            const centerX = (rect.width / 2 - dagView.panX) / dagView.zoom;
+            const centerY = (rect.height / 2 - dagView.panY) / dagView.zoom;
+
             dag.nodes[id] = {
                 id: id,
                 modelIndex: 0,
                 position: {
-                    x: Math.random() * (rect.width - 150) + 20,
-                    y: Math.random() * (rect.height - 100) + 20
+                    x: centerX + (Math.random() - 0.5) * 100,
+                    y: centerY + (Math.random() - 0.5) * 80
                 },
                 systemPrompt: null,
                 customPrompt: '',
@@ -1652,10 +2003,11 @@
 
         function renderDag() {
             const container = document.getElementById('dag-canvas-container');
+            const wrapper = document.getElementById('dag-canvas-wrapper');
             const svg = document.getElementById('dag-canvas');
 
             // Clear existing nodes (not SVG)
-            container.querySelectorAll('.dag-node').forEach(n => n.remove());
+            wrapper.querySelectorAll('.dag-node').forEach(n => n.remove());
 
             // Clear SVG
             svg.innerHTML = '';
@@ -1675,6 +2027,22 @@
                 const toNode = dag.nodes[edge.to];
                 if (!fromNode || !toNode) return;
 
+                // Create a wider invisible hit area for easier clicking
+                const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                hitArea.setAttribute('x1', fromNode.position.x + 60);
+                hitArea.setAttribute('y1', fromNode.position.y + 50);
+                hitArea.setAttribute('x2', toNode.position.x + 60);
+                hitArea.setAttribute('y2', toNode.position.y + 10);
+                hitArea.setAttribute('stroke', 'transparent');
+                hitArea.setAttribute('stroke-width', '16');
+                hitArea.style.cursor = 'pointer';
+                hitArea.dataset.edgeId = edge.id;
+                hitArea.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteEdge(edge.id);
+                });
+                svg.appendChild(hitArea);
+
                 const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                 line.setAttribute('x1', fromNode.position.x + 60);
                 line.setAttribute('y1', fromNode.position.y + 50);
@@ -1684,8 +2052,8 @@
                 line.setAttribute('stroke-width', '2');
                 line.setAttribute('marker-end', 'url(#arrowhead)');
                 line.style.cursor = 'pointer';
+                line.style.pointerEvents = 'none';
                 line.dataset.edgeId = edge.id;
-                line.addEventListener('click', () => deleteEdge(edge.id));
                 svg.appendChild(line);
             });
 
@@ -1715,14 +2083,35 @@
                     </div>
                 `;
 
-                container.appendChild(div);
+                wrapper.appendChild(div);
             });
 
             // Update rotation toggle
             document.getElementById('dag-rotation-toggle').checked = dag.rotation?.enabled || false;
+
+            // Update delete button state
+            const deleteBtn = document.getElementById('delete-node-btn');
+            if (deleteBtn) {
+                deleteBtn.disabled = !selectedNodeId;
+            }
+        }
+
+        // Convert screen coordinates to canvas coordinates (accounting for zoom/pan)
+        function screenToCanvas(clientX, clientY) {
+            const container = document.getElementById('dag-canvas-container');
+            const rect = container.getBoundingClientRect();
+            const screenX = clientX - rect.left;
+            const screenY = clientY - rect.top;
+            return {
+                x: (screenX - dagView.panX) / dagView.zoom,
+                y: (screenY - dagView.panY) / dagView.zoom
+            };
         }
 
         function handleCanvasMouseDown(e) {
+            // Ignore if panning
+            if (e.button === 1) return;
+
             const node = e.target.closest('.dag-node');
             const port = e.target.closest('.dag-port');
 
@@ -1740,8 +2129,9 @@
                     const startNode = dag.nodes[nodeId];
                     tempEdgeLine.setAttribute('x1', startNode.position.x + 60);
                     tempEdgeLine.setAttribute('y1', startNode.position.y + 50);
-                    tempEdgeLine.setAttribute('x2', e.offsetX);
-                    tempEdgeLine.setAttribute('y2', e.offsetY);
+                    const canvasCoords = screenToCanvas(e.clientX, e.clientY);
+                    tempEdgeLine.setAttribute('x2', canvasCoords.x);
+                    tempEdgeLine.setAttribute('y2', canvasCoords.y);
                     tempEdgeLine.setAttribute('stroke', '#4a9eff');
                     tempEdgeLine.setAttribute('stroke-width', '2');
                     tempEdgeLine.setAttribute('stroke-dasharray', '5,5');
@@ -1755,10 +2145,10 @@
                 // Start dragging node
                 selectedNodeId = node.dataset.nodeId;
                 isDraggingNode = true;
-                const rect = node.getBoundingClientRect();
-                const containerRect = document.getElementById('dag-canvas-container').getBoundingClientRect();
-                dragOffset.x = e.clientX - rect.left;
-                dragOffset.y = e.clientY - rect.top;
+                const nodeData = dag.nodes[selectedNodeId];
+                const canvasCoords = screenToCanvas(e.clientX, e.clientY);
+                dragOffset.x = canvasCoords.x - nodeData.position.x;
+                dragOffset.y = canvasCoords.y - nodeData.position.y;
                 renderDag();
                 e.preventDefault();
             } else {
@@ -1771,17 +2161,17 @@
 
         function handleCanvasMouseMove(e) {
             if (isDraggingNode && selectedNodeId) {
-                const container = document.getElementById('dag-canvas-container');
-                const rect = container.getBoundingClientRect();
-                const newX = e.clientX - rect.left - dragOffset.x;
-                const newY = e.clientY - rect.top - dragOffset.y;
+                const canvasCoords = screenToCanvas(e.clientX, e.clientY);
+                const newX = canvasCoords.x - dragOffset.x;
+                const newY = canvasCoords.y - dragOffset.y;
 
                 // Update state
                 dag.nodes[selectedNodeId].position.x = newX;
                 dag.nodes[selectedNodeId].position.y = newY;
 
                 // Update node element directly (no full re-render)
-                const nodeEl = container.querySelector(`[data-node-id="${selectedNodeId}"]`);
+                const wrapper = document.getElementById('dag-canvas-wrapper');
+                const nodeEl = wrapper.querySelector(`[data-node-id="${selectedNodeId}"]`);
                 if (nodeEl) {
                     nodeEl.style.left = newX + 'px';
                     nodeEl.style.top = newY + 'px';
@@ -1792,10 +2182,9 @@
             }
 
             if (isDrawingEdge && tempEdgeLine) {
-                const container = document.getElementById('dag-canvas-container');
-                const rect = container.getBoundingClientRect();
-                tempEdgeLine.setAttribute('x2', e.clientX - rect.left);
-                tempEdgeLine.setAttribute('y2', e.clientY - rect.top);
+                const canvasCoords = screenToCanvas(e.clientX, e.clientY);
+                tempEdgeLine.setAttribute('x2', canvasCoords.x);
+                tempEdgeLine.setAttribute('y2', canvasCoords.y);
             }
         }
 
@@ -1807,16 +2196,17 @@
 
             for (const edge of Object.values(dag.edges)) {
                 if (edge.from === nodeId || edge.to === nodeId) {
-                    const line = svg.querySelector(`[data-edge-id="${edge.id}"]`);
-                    if (line) {
-                        const fromNode = dag.nodes[edge.from];
-                        const toNode = dag.nodes[edge.to];
-                        if (fromNode && toNode) {
+                    // Update all lines with this edge id (hit area + visible line)
+                    const lines = svg.querySelectorAll(`[data-edge-id="${edge.id}"]`);
+                    const fromNode = dag.nodes[edge.from];
+                    const toNode = dag.nodes[edge.to];
+                    if (fromNode && toNode) {
+                        lines.forEach(line => {
                             line.setAttribute('x1', fromNode.position.x + 60);
                             line.setAttribute('y1', fromNode.position.y + 50);
                             line.setAttribute('x2', toNode.position.x + 60);
                             line.setAttribute('y2', toNode.position.y + 10);
-                        }
+                        });
                     }
                 }
             }
@@ -1868,8 +2258,7 @@
                     target: document.elementFromPoint(touch.clientX, touch.clientY),
                     clientX: touch.clientX,
                     clientY: touch.clientY,
-                    offsetX: touch.clientX - document.getElementById('dag-canvas-container').getBoundingClientRect().left,
-                    offsetY: touch.clientY - document.getElementById('dag-canvas-container').getBoundingClientRect().top,
+                    button: 0, // Simulate left click
                     preventDefault: () => e.preventDefault()
                 };
                 handleCanvasMouseDown(fakeEvent);
@@ -1881,9 +2270,7 @@
                 const touch = e.touches[0];
                 const fakeEvent = {
                     clientX: touch.clientX,
-                    clientY: touch.clientY,
-                    offsetX: touch.clientX - document.getElementById('dag-canvas-container').getBoundingClientRect().left,
-                    offsetY: touch.clientY - document.getElementById('dag-canvas-container').getBoundingClientRect().top
+                    clientY: touch.clientY
                 };
                 handleCanvasMouseMove(fakeEvent);
                 e.preventDefault();
@@ -2072,6 +2459,256 @@
                 saveToStorage();
                 renderDag();
             }
+        }
+
+        // ==================== DAG VIEW (Zoom/Pan) ====================
+
+        let dagView = {
+            zoom: 1,
+            panX: 0,
+            panY: 0
+        };
+        let isPanning = false;
+        let panStart = { x: 0, y: 0 };
+        let lastPinchDistance = 0;
+
+        function updateDagTransform() {
+            const wrapper = document.getElementById('dag-canvas-wrapper');
+            if (wrapper) {
+                wrapper.style.transform = `translate(${dagView.panX}px, ${dagView.panY}px) scale(${dagView.zoom})`;
+            }
+            document.getElementById('dag-zoom-level').textContent = Math.round(dagView.zoom * 100) + '%';
+        }
+
+        function zoomDag(delta, centerX, centerY) {
+            const container = document.getElementById('dag-canvas-container');
+            const rect = container.getBoundingClientRect();
+
+            // Default center to container center
+            if (centerX === undefined) centerX = rect.width / 2;
+            if (centerY === undefined) centerY = rect.height / 2;
+
+            const oldZoom = dagView.zoom;
+            dagView.zoom = Math.max(0.25, Math.min(3, dagView.zoom + delta));
+
+            // Adjust pan to zoom towards the center point
+            const zoomRatio = dagView.zoom / oldZoom;
+            dagView.panX = centerX - (centerX - dagView.panX) * zoomRatio;
+            dagView.panY = centerY - (centerY - dagView.panY) * zoomRatio;
+
+            updateDagTransform();
+        }
+
+        function resetDagView() {
+            dagView = { zoom: 1, panX: 0, panY: 0 };
+            updateDagTransform();
+        }
+
+        function fitDagToView() {
+            const nodes = Object.values(dag.nodes);
+            if (nodes.length === 0) {
+                resetDagView();
+                return;
+            }
+
+            const container = document.getElementById('dag-canvas-container');
+            const rect = container.getBoundingClientRect();
+
+            // Find bounding box of all nodes
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            for (const node of nodes) {
+                minX = Math.min(minX, node.position.x);
+                minY = Math.min(minY, node.position.y);
+                maxX = Math.max(maxX, node.position.x + 120); // node width
+                maxY = Math.max(maxY, node.position.y + 80);  // node height
+            }
+
+            const padding = 60;
+            const contentWidth = maxX - minX + padding * 2;
+            const contentHeight = maxY - minY + padding * 2;
+
+            // Calculate zoom to fit
+            const zoomX = rect.width / contentWidth;
+            const zoomY = rect.height / contentHeight;
+            dagView.zoom = Math.min(1.5, Math.max(0.25, Math.min(zoomX, zoomY)));
+
+            // Center the content
+            const scaledWidth = contentWidth * dagView.zoom;
+            const scaledHeight = contentHeight * dagView.zoom;
+            dagView.panX = (rect.width - scaledWidth) / 2 - (minX - padding) * dagView.zoom;
+            dagView.panY = (rect.height - scaledHeight) / 2 - (minY - padding) * dagView.zoom;
+
+            updateDagTransform();
+        }
+
+        function handleDagWheel(e) {
+            if (e.target.closest('.dag-zoom-controls')) return;
+
+            e.preventDefault();
+            const rect = e.currentTarget.getBoundingClientRect();
+            const centerX = e.clientX - rect.left;
+            const centerY = e.clientY - rect.top;
+
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            zoomDag(delta, centerX, centerY);
+        }
+
+        function startPanning(e) {
+            // Only pan with middle mouse button or when holding space
+            if (e.button === 1) {
+                e.preventDefault();
+                isPanning = true;
+                panStart = { x: e.clientX - dagView.panX, y: e.clientY - dagView.panY };
+                document.getElementById('dag-canvas-container').classList.add('panning');
+            }
+        }
+
+        function handlePanning(e) {
+            if (isPanning) {
+                dagView.panX = e.clientX - panStart.x;
+                dagView.panY = e.clientY - panStart.y;
+                updateDagTransform();
+            }
+        }
+
+        function stopPanning() {
+            if (isPanning) {
+                isPanning = false;
+                document.getElementById('dag-canvas-container').classList.remove('panning');
+            }
+        }
+
+        // Touch pinch-to-zoom and two-finger pan
+        function handleDagTouchStart(e) {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                lastPinchDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                panStart = {
+                    x: (e.touches[0].clientX + e.touches[1].clientX) / 2 - dagView.panX,
+                    y: (e.touches[0].clientY + e.touches[1].clientY) / 2 - dagView.panY
+                };
+            }
+        }
+
+        function handleDagTouchMove(e) {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const newDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+
+                // Pinch zoom
+                const delta = (newDistance - lastPinchDistance) * 0.005;
+                const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                const rect = e.currentTarget.getBoundingClientRect();
+                zoomDag(delta, centerX - rect.left, centerY - rect.top);
+
+                lastPinchDistance = newDistance;
+
+                // Two-finger pan
+                dagView.panX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - panStart.x;
+                dagView.panY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - panStart.y;
+                updateDagTransform();
+            }
+        }
+
+        // ==================== DAG HELP ====================
+
+        function openDagHelp() {
+            document.getElementById('dag-help-overlay').classList.add('open');
+        }
+
+        function closeDagHelp() {
+            document.getElementById('dag-help-overlay').classList.remove('open');
+        }
+
+        // ==================== DAG AUTO-LAYOUT ====================
+
+        function autoLayoutDag() {
+            const nodes = Object.values(dag.nodes);
+            if (nodes.length === 0) return;
+
+            saveDagSnapshot();  // Save for undo
+
+            // Build adjacency lists
+            const inDegree = {};
+            const outEdges = {};
+            for (const node of nodes) {
+                inDegree[node.id] = 0;
+                outEdges[node.id] = [];
+            }
+            for (const edge of Object.values(dag.edges)) {
+                inDegree[edge.to] = (inDegree[edge.to] || 0) + 1;
+                outEdges[edge.from] = outEdges[edge.from] || [];
+                outEdges[edge.from].push(edge.to);
+            }
+
+            // Topological sort to determine layers
+            const layers = [];
+            const nodeLayer = {};
+            const queue = nodes.filter(n => inDegree[n.id] === 0).map(n => n.id);
+
+            if (queue.length === 0 && nodes.length > 0) {
+                // No root nodes - just spread them out
+                const spacing = 150;
+                nodes.forEach((node, i) => {
+                    node.position.x = (i % 4) * spacing + 50;
+                    node.position.y = Math.floor(i / 4) * 100 + 50;
+                });
+                saveToStorage();
+                renderDag();
+                fitDagToView();
+                return;
+            }
+
+            while (queue.length > 0) {
+                const currentLayer = [...queue];
+                layers.push(currentLayer);
+                queue.length = 0;
+
+                for (const nodeId of currentLayer) {
+                    nodeLayer[nodeId] = layers.length - 1;
+                    for (const nextId of (outEdges[nodeId] || [])) {
+                        inDegree[nextId]--;
+                        if (inDegree[nextId] === 0) {
+                            queue.push(nextId);
+                        }
+                    }
+                }
+            }
+
+            // Position nodes by layer
+            const containerRect = document.getElementById('dag-canvas-container').getBoundingClientRect();
+            const nodeWidth = 140;
+            const nodeHeight = 100;
+            const layerGap = 120;
+
+            const totalHeight = layers.length * layerGap;
+            const startY = Math.max(50, (containerRect.height - totalHeight) / 2);
+
+            for (let layer = 0; layer < layers.length; layer++) {
+                const nodesInLayer = layers[layer];
+                const totalWidth = nodesInLayer.length * nodeWidth;
+                const startX = Math.max(50, (containerRect.width - totalWidth) / 2);
+
+                nodesInLayer.forEach((nodeId, idx) => {
+                    const node = dag.nodes[nodeId];
+                    if (node) {
+                        node.position.x = startX + idx * nodeWidth;
+                        node.position.y = startY + layer * layerGap;
+                    }
+                });
+            }
+
+            saveToStorage();
+            renderDag();
+            fitDagToView();
+            toastSuccess('Auto-layout applied');
         }
 
         // ==================== DAG TEMPLATES (Data-Driven) ====================
@@ -3710,8 +4347,16 @@
                     }
                 }
 
-                // Escape = Deselect node or close panels
+                // Escape = Close panels, deselect node, or close help
                 if (e.key === 'Escape' && !isInput) {
+                    // First close help overlay if open
+                    const helpOverlay = document.getElementById('dag-help-overlay');
+                    if (helpOverlay.classList.contains('open')) {
+                        closeDagHelp();
+                        return;
+                    }
+
+                    // Then deselect/close config panels
                     if (selectedNodeId) {
                         selectedNodeId = null;
                         closeDagConfigPanel();
