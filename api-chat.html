@@ -845,6 +845,223 @@
             display: none;
         }
 
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: #2a2a2a;
+            border: 1px solid #4a4a4a;
+            border-radius: 8px;
+            padding: 12px 16px;
+            max-width: 350px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            animation: toastSlideIn 0.3s ease;
+            pointer-events: auto;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .toast.toast-exit {
+            animation: toastSlideOut 0.3s ease forwards;
+        }
+
+        .toast-success {
+            border-color: #4a8a4a;
+        }
+
+        .toast-success .toast-icon {
+            color: #4aff9e;
+        }
+
+        .toast-error {
+            border-color: #8a4a4a;
+        }
+
+        .toast-error .toast-icon {
+            color: #ff6b6b;
+        }
+
+        .toast-warning {
+            border-color: #8a7a4a;
+        }
+
+        .toast-warning .toast-icon {
+            color: #ffcc42;
+        }
+
+        .toast-info {
+            border-color: #4a7a8a;
+        }
+
+        .toast-info .toast-icon {
+            color: #4a9eff;
+        }
+
+        .toast-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+
+        .toast-message {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            padding: 0;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .toast-close:hover {
+            color: #e0e0e0;
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes toastSlideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        /* Edit Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: #2a2a2a;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            background: #3a3a3a;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .modal-body {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .modal-body textarea {
+            width: 100%;
+            min-height: 200px;
+            background: #1a1a1a;
+            border: 1px solid #3a3a3a;
+            color: #e0e0e0;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        .modal-body textarea:focus {
+            outline: none;
+            border-color: #4a9eff;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #3a3a3a;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .modal-footer button {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            border: 1px solid #4a4a4a;
+            background: #3a3a3a;
+            color: #e0e0e0;
+        }
+
+        .modal-footer button:hover {
+            background: #4a4a4a;
+        }
+
+        .modal-footer button.primary {
+            background: #4a9eff;
+            border-color: #4a9eff;
+        }
+
+        .modal-footer button.primary:hover {
+            background: #3a8eef;
+        }
+
         @media (max-width: 768px) {
             .message {
                 max-width: 95%;
@@ -865,6 +1082,26 @@
     </style>
 </head>
 <body>
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="edit-modal-title">Edit Response</h3>
+                <button onclick="closeEditModal()" style="background: none; border: none; color: #888; font-size: 20px; cursor: pointer;">×</button>
+            </div>
+            <div class="modal-body">
+                <textarea id="edit-modal-content" placeholder="Enter content..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeEditModal()">Cancel</button>
+                <button class="primary" onclick="saveEditModal()">Save</button>
+            </div>
+        </div>
+    </div>
+
     <div class="tabs">
         <button class="tab active" data-tab="chat">Chat</button>
         <button class="tab" data-tab="dag">DAG</button>
@@ -908,12 +1145,15 @@
                     <option value="diamond">Diamond</option>
                     <option value="debate">Debate</option>
                     <option value="critic">Critic Loop</option>
+                    <option value="ensemble">Ensemble (3-way)</option>
                 </select>
                 <div class="toggle-switch">
                     <input type="checkbox" id="dag-rotation-toggle" onchange="toggleDagRotation()">
                     <label for="dag-rotation-toggle">Rotation</label>
                 </div>
                 <button onclick="openDagSettings()">⚙ Settings</button>
+                <button onclick="exportDag()">Export DAG</button>
+                <button onclick="importDag()">Import DAG</button>
                 <button onclick="clearDag()" style="margin-left: auto;">Clear DAG</button>
             </div>
             <div id="dag-canvas-container">
@@ -1070,55 +1310,150 @@
     </div>
 
     <script>
+        // ==================== CONSTANTS ====================
+        const CONFIG = {
+            // Storage & History
+            MAX_CONVERSATION_HISTORY: 50,          // Max saved conversations
+            MAX_MODELS_BROWSER_RESULTS: 100,       // Models shown in browser
+            MAX_FILTERED_MODELS: 50,               // Filtered model results
+
+            // DAG Defaults
+            DEFAULT_RESPONSE_DELAY: 500,           // ms between node executions
+            DEFAULT_HISTORY_LIMIT: 0,              // 0 = unlimited
+
+            // UI
+            NODE_WIDTH: 120,                       // DAG node width for positioning
+            NODE_HEIGHT: 80,                       // DAG node height for positioning
+            TOAST_DURATION: 3000,                  // Toast notification duration ms
+            TOAST_ERROR_DURATION: 5000,            // Error toast duration ms
+
+            // Performance
+            RENDER_DEBOUNCE_MS: 16,                // ~60fps for render scheduling
+
+            // Database
+            DB_NAME: 'DAGchatDB',
+            DB_VERSION: 1,
+            DB_STORE_NAME: 'settings'
+        };
+
+        // Error types for better error handling
+        class DAGError extends Error {
+            constructor(message, code) {
+                super(message);
+                this.name = 'DAGError';
+                this.code = code;
+            }
+        }
+
+        class APIError extends Error {
+            constructor(message, status, details) {
+                super(message);
+                this.name = 'APIError';
+                this.status = status;
+                this.details = details;
+            }
+        }
+
         // ==================== STATE ====================
-        let models = [];
-        let apiKeys = [];
-        let systemPrompts = [];
-        let currentConversation = [];
-        let conversationHistory = [];
-        let attachedFiles = [];
+        // Unified application state
+        const state = {
+            // Data
+            models: [],
+            apiKeys: [],
+            systemPrompts: [],
+            currentConversation: [],
+            conversationHistory: [],
+            attachedFiles: [],
+
+            // DAG
+            dag: {
+                nodes: {},
+                edges: {},
+                terminalNode: null,
+                globalSystemPrompt: null,
+                globalCustomPrompt: '',
+                rotation: { enabled: false, index: 0 },
+                settings: {
+                    historyLimit: CONFIG.DEFAULT_HISTORY_LIMIT,
+                    responseDelay: CONFIG.DEFAULT_RESPONSE_DELAY,
+                    includeFiles: false,
+                    modelIdentity: true
+                }
+            },
+
+            // Undo/Redo history for DAG operations
+            dagHistory: [],
+            dagHistoryIndex: -1,
+
+            // Clipboard for copy/paste
+            clipboard: null,
+
+            // UI State
+            ui: {
+                editingMessageIndex: null,
+                selectedNodeId: null,
+                isDraggingNode: false,
+                isDrawingEdge: false,
+                dragOffset: { x: 0, y: 0 },
+                edgeStartNode: null,
+                tempEdgeLine: null
+            },
+
+            // Streaming State
+            streaming: {
+                active: false,
+                userStopped: false,
+                abortControllers: [],
+                renderTimer: null
+            },
+
+            // Settings
+            settings: {
+                userIdentifier: 'Human',
+                enableLatexRendering: false,
+                enableMarkdownRendering: false,
+                enableExtendedThinking: false,
+                enableBackgroundAudio: false,
+                thinkingEffort: 'high'
+            },
+
+            // Audio
+            audio: {
+                context: null,
+                silentNode: null
+            },
+
+            // Database
+            db: null
+        };
+
+        // Legacy aliases for gradual migration (will remove as we update functions)
+        let models = state.models;
+        let apiKeys = state.apiKeys;
+        let systemPrompts = state.systemPrompts;
+        let currentConversation = state.currentConversation;
+        let conversationHistory = state.conversationHistory;
+        let attachedFiles = state.attachedFiles;
         let editingMessageIndex = null;
         let isStreaming = false;
         let userStoppedGeneration = false;
         let currentAbortControllers = [];
         let renderTimer = null;
-
-        // DAG State
-        let dag = {
-            nodes: {},
-            edges: {},
-            terminalNode: null,
-            globalSystemPrompt: null,
-            globalCustomPrompt: '',
-            rotation: { enabled: false, index: 0 },
-            settings: {
-                historyLimit: 0,
-                responseDelay: 500,
-                includeFiles: false,
-                modelIdentity: true
-            }
-        };
-
+        let dag = state.dag;
         let selectedNodeId = null;
         let isDraggingNode = false;
         let isDrawingEdge = false;
         let dragOffset = { x: 0, y: 0 };
         let edgeStartNode = null;
         let tempEdgeLine = null;
-
-        // Global settings
         let userIdentifier = 'Human';
         let enableLatexRendering = false;
         let enableMarkdownRendering = false;
         let enableExtendedThinking = false;
         let enableBackgroundAudio = false;
         let thinkingEffort = 'high';
-
-        // Audio context for background
         let audioContext = null;
         let silentAudioNode = null;
-
-        // DB
         let db = null;
 
         // ==================== INITIALIZATION ====================
@@ -1127,6 +1462,11 @@
             if (enableLatexRendering) await loadKaTeX();
             if (enableMarkdownRendering) await loadSnarkdown();
             setupEventListeners();
+            setupKeyboardShortcuts();
+
+            // Initialize DAG history with current state
+            saveDagSnapshot();
+
             updateModelsList();
             updateApiKeysList();
             updatePromptsList();
@@ -1276,9 +1616,11 @@
 
         function addDagNode() {
             if (models.length === 0) {
-                alert('Please add at least one model in Settings first.');
+                toastWarning('Please add at least one model in Settings first.');
                 return;
             }
+
+            saveDagSnapshot();  // Save for undo
 
             const id = generateId();
             const container = document.getElementById('dag-canvas-container');
@@ -1431,9 +1773,22 @@
             if (isDraggingNode && selectedNodeId) {
                 const container = document.getElementById('dag-canvas-container');
                 const rect = container.getBoundingClientRect();
-                dag.nodes[selectedNodeId].position.x = e.clientX - rect.left - dragOffset.x;
-                dag.nodes[selectedNodeId].position.y = e.clientY - rect.top - dragOffset.y;
-                renderDag();
+                const newX = e.clientX - rect.left - dragOffset.x;
+                const newY = e.clientY - rect.top - dragOffset.y;
+
+                // Update state
+                dag.nodes[selectedNodeId].position.x = newX;
+                dag.nodes[selectedNodeId].position.y = newY;
+
+                // Update node element directly (no full re-render)
+                const nodeEl = container.querySelector(`[data-node-id="${selectedNodeId}"]`);
+                if (nodeEl) {
+                    nodeEl.style.left = newX + 'px';
+                    nodeEl.style.top = newY + 'px';
+                }
+
+                // Update connected edges directly
+                updateEdgesForNode(selectedNodeId);
             }
 
             if (isDrawingEdge && tempEdgeLine) {
@@ -1444,9 +1799,33 @@
             }
         }
 
+        // Efficiently update just the edges connected to a specific node
+        function updateEdgesForNode(nodeId) {
+            const svg = document.getElementById('dag-canvas');
+            const node = dag.nodes[nodeId];
+            if (!node) return;
+
+            for (const edge of Object.values(dag.edges)) {
+                if (edge.from === nodeId || edge.to === nodeId) {
+                    const line = svg.querySelector(`[data-edge-id="${edge.id}"]`);
+                    if (line) {
+                        const fromNode = dag.nodes[edge.from];
+                        const toNode = dag.nodes[edge.to];
+                        if (fromNode && toNode) {
+                            line.setAttribute('x1', fromNode.position.x + 60);
+                            line.setAttribute('y1', fromNode.position.y + 50);
+                            line.setAttribute('x2', toNode.position.x + 60);
+                            line.setAttribute('y2', toNode.position.y + 10);
+                        }
+                    }
+                }
+            }
+        }
+
         function handleCanvasMouseUp(e) {
             if (isDraggingNode) {
                 isDraggingNode = false;
+                saveDagSnapshot();  // Save for undo after drag
                 saveToStorage();
             }
 
@@ -1458,6 +1837,7 @@
 
                     // Check for cycles
                     if (!wouldCreateCycle(edgeStartNode, toNodeId)) {
+                        saveDagSnapshot();  // Save for undo
                         const edgeId = generateId();
                         dag.edges[edgeId] = {
                             id: edgeId,
@@ -1467,7 +1847,7 @@
                         };
                         saveToStorage();
                     } else {
-                        alert('Cannot create edge: would create a cycle');
+                        toastError('Cannot create edge: would create a cycle');
                     }
                 }
 
@@ -1550,6 +1930,7 @@
 
         function deleteEdge(edgeId) {
             if (confirm('Delete this connection?')) {
+                saveDagSnapshot();  // Save for undo
                 delete dag.edges[edgeId];
                 saveToStorage();
                 renderDag();
@@ -1614,6 +1995,8 @@
             if (!selectedNodeId) return;
 
             if (confirm('Delete this node and its connections?')) {
+                saveDagSnapshot();  // Save for undo
+
                 // Remove edges connected to this node
                 for (const edgeId of Object.keys(dag.edges)) {
                     const edge = dag.edges[edgeId];
@@ -1681,6 +2064,7 @@
 
         function clearDag() {
             if (confirm('Clear the entire DAG?')) {
+                saveDagSnapshot();  // Save for undo
                 dag.nodes = {};
                 dag.edges = {};
                 dag.terminalNode = null;
@@ -1690,76 +2074,171 @@
             }
         }
 
-        // ==================== DAG TEMPLATES ====================
-        function loadDagTemplate(template) {
-            if (!template) return;
+        // ==================== DAG TEMPLATES (Data-Driven) ====================
+
+        // Template definitions - easy to extend and share
+        const DAG_TEMPLATES = {
+            single: {
+                name: 'Single Model',
+                description: 'A single model node',
+                nodes: [
+                    { name: 'A', x: 0, y: 0, terminal: true }
+                ],
+                edges: []
+            },
+            chain: {
+                name: 'Chain (A→B→C)',
+                description: 'Sequential processing through multiple models',
+                nodes: [
+                    { name: 'A', x: 0, y: -100 },
+                    { name: 'B', x: 0, y: 0 },
+                    { name: 'C', x: 0, y: 100, terminal: true }
+                ],
+                edges: [
+                    { from: 0, to: 1 },
+                    { from: 1, to: 2 }
+                ]
+            },
+            parallel: {
+                name: 'Parallel',
+                description: 'Two models processing the same input',
+                nodes: [
+                    { name: 'Model 1', x: -90, y: 0, terminal: true },
+                    { name: 'Model 2', x: 90, y: 0, terminal: true }
+                ],
+                edges: []
+            },
+            diamond: {
+                name: 'Diamond',
+                description: 'Split input, parallel processing, merge results',
+                nodes: [
+                    { name: 'Input', x: 0, y: -100 },
+                    { name: 'Path A', x: -90, y: 0 },
+                    { name: 'Path B', x: 90, y: 0 },
+                    { name: 'Merge', x: 0, y: 100, terminal: true }
+                ],
+                edges: [
+                    { from: 0, to: 1 },
+                    { from: 0, to: 2 },
+                    { from: 1, to: 3 },
+                    { from: 2, to: 3 }
+                ]
+            },
+            debate: {
+                name: 'Debate',
+                description: 'Two models debate, third judges',
+                nodes: [
+                    { name: 'Debater A', x: -90, y: -65 },
+                    { name: 'Debater B', x: 90, y: -65 },
+                    { name: 'Judge', x: 0, y: 65, terminal: true }
+                ],
+                edges: [
+                    { from: 0, to: 2 },
+                    { from: 1, to: 2 }
+                ]
+            },
+            critic: {
+                name: 'Critic Loop',
+                description: 'Draft → Critique → Refine',
+                nodes: [
+                    { name: 'Draft', x: 0, y: -100 },
+                    { name: 'Critic', x: 0, y: 0 },
+                    { name: 'Refine', x: 0, y: 100, terminal: true }
+                ],
+                edges: [
+                    { from: 0, to: 1 },
+                    { from: 1, to: 2 }
+                ]
+            },
+            ensemble: {
+                name: 'Ensemble (3-way)',
+                description: 'Three models with a synthesizer',
+                nodes: [
+                    { name: 'Model A', x: -120, y: -50 },
+                    { name: 'Model B', x: 0, y: -50 },
+                    { name: 'Model C', x: 120, y: -50 },
+                    { name: 'Synthesizer', x: 0, y: 80, terminal: true }
+                ],
+                edges: [
+                    { from: 0, to: 3 },
+                    { from: 1, to: 3 },
+                    { from: 2, to: 3 }
+                ]
+            }
+        };
+
+        function loadDagTemplate(templateKey) {
+            if (!templateKey) return;
+
+            const template = DAG_TEMPLATES[templateKey];
+            if (!template) {
+                toastError(`Unknown template: ${templateKey}`);
+                return;
+            }
 
             if (Object.keys(dag.nodes).length > 0) {
-                if (!confirm('This will replace your current DAG. Continue?')) {
+                if (!confirm(`Load "${template.name}" template? This will replace your current DAG.`)) {
                     document.getElementById('dag-template-select').value = '';
                     return;
                 }
             }
 
+            // Save current state for undo
+            saveDagSnapshot();
+
             dag.nodes = {};
             dag.edges = {};
+            dag.terminalNode = null;
 
             const container = document.getElementById('dag-canvas-container');
             const rect = container.getBoundingClientRect();
             const centerX = rect.width / 2;
             const centerY = rect.height / 2;
 
-            switch (template) {
-                case 'single':
-                    createTemplateNode('A', centerX - 60, centerY - 40, true);
-                    break;
+            // Create nodes and track their IDs
+            const nodeIds = [];
+            for (const nodeDef of template.nodes) {
+                const id = generateId();
+                dag.nodes[id] = {
+                    id: id,
+                    modelIndex: 0,
+                    position: {
+                        x: centerX + nodeDef.x - 60,
+                        y: centerY + nodeDef.y - 40
+                    },
+                    systemPrompt: null,
+                    customPrompt: '',
+                    config: {
+                        contextMode: 'inputs-plus-user',
+                        stripReasoning: false
+                    }
+                };
 
-                case 'chain':
-                    const chainA = createTemplateNode('A', centerX - 60, 50);
-                    const chainB = createTemplateNode('B', centerX - 60, 150);
-                    const chainC = createTemplateNode('C', centerX - 60, 250, true);
-                    createEdge(chainA, chainB);
-                    createEdge(chainB, chainC);
-                    break;
+                if (nodeDef.terminal) {
+                    dag.terminalNode = id;
+                }
 
-                case 'parallel':
-                    const par1 = createTemplateNode('Model 1', centerX - 150, centerY - 40, true);
-                    const par2 = createTemplateNode('Model 2', centerX + 30, centerY - 40, true);
-                    break;
+                nodeIds.push(id);
+            }
 
-                case 'diamond':
-                    const diaTop = createTemplateNode('Input', centerX - 60, 30);
-                    const diaLeft = createTemplateNode('Path A', centerX - 150, 130);
-                    const diaRight = createTemplateNode('Path B', centerX + 30, 130);
-                    const diaBottom = createTemplateNode('Merge', centerX - 60, 230, true);
-                    createEdge(diaTop, diaLeft);
-                    createEdge(diaTop, diaRight);
-                    createEdge(diaLeft, diaBottom);
-                    createEdge(diaRight, diaBottom);
-                    break;
-
-                case 'debate':
-                    const debA = createTemplateNode('Debater A', centerX - 150, 50);
-                    const debB = createTemplateNode('Debater B', centerX + 30, 50);
-                    const debJudge = createTemplateNode('Judge', centerX - 60, 180, true);
-                    createEdge(debA, debJudge);
-                    createEdge(debB, debJudge);
-                    break;
-
-                case 'critic':
-                    const draft = createTemplateNode('Draft', centerX - 60, 30);
-                    const critic = createTemplateNode('Critic', centerX - 60, 130);
-                    const refine = createTemplateNode('Refine', centerX - 60, 230, true);
-                    createEdge(draft, critic);
-                    createEdge(critic, refine);
-                    break;
+            // Create edges using node indices
+            for (const edgeDef of template.edges) {
+                const edgeId = generateId();
+                dag.edges[edgeId] = {
+                    id: edgeId,
+                    from: nodeIds[edgeDef.from],
+                    to: nodeIds[edgeDef.to],
+                    transform: 'full'
+                };
             }
 
             document.getElementById('dag-template-select').value = '';
             saveToStorage();
             renderDag();
+            toastSuccess(`Loaded "${template.name}" template`);
         }
 
+        // Helper function to create a node (used for manual node creation too)
         function createTemplateNode(name, x, y, isTerminal = false) {
             const id = generateId();
             dag.nodes[id] = {
@@ -2173,7 +2652,7 @@
 
             // Check if DAG is configured
             if (Object.keys(dag.nodes).length === 0) {
-                alert('Please configure at least one node in the DAG tab first.');
+                toastWarning('Please configure at least one node in the DAG tab first.');
                 switchTab('dag');
                 return;
             }
@@ -2512,13 +2991,15 @@
 
         function editAssistantMessage(index) {
             const msg = currentConversation[index];
-            const content = prompt('Edit response:', msg.content);
-            if (content !== null) {
-                msg.content = content;
-                currentConversation = currentConversation.slice(0, index + 1);
-                saveToStorage();
-                renderConversation();
-            }
+            openEditModal('Edit Response', msg.content, (newContent) => {
+                if (newContent !== null && newContent !== msg.content) {
+                    msg.content = newContent;
+                    currentConversation = currentConversation.slice(0, index + 1);
+                    saveToStorage();
+                    renderConversation();
+                    toastSuccess('Response updated');
+                }
+            });
         }
 
         async function regenerateFromMessage(index) {
@@ -2688,11 +3169,11 @@
                         saveToStorage();
                         renderConversation();
                         renderDag();
-                        alert('Imported!');
+                        toastSuccess('Conversation imported!');
                         switchTab('chat');
                     }
                 } catch (e) {
-                    alert('Import error: ' + e.message);
+                    toastError(e.message, 'Import Failed');
                 }
             };
             reader.readAsText(file);
@@ -2705,7 +3186,7 @@
             const value = document.getElementById('new-api-key-value').value.trim();
 
             if (!name || !value) {
-                alert('Please enter both name and value');
+                toastWarning('Please enter both name and value');
                 return;
             }
 
@@ -2743,7 +3224,7 @@
             const content = document.getElementById('new-prompt-content').value.trim();
 
             if (!name || !content) {
-                alert('Please enter both name and content');
+                toastWarning('Please enter both name and content');
                 return;
             }
 
@@ -2781,7 +3262,7 @@
             const config = document.getElementById('new-model-config').value.trim();
 
             if (!name || !config) {
-                alert('Please enter both name and config');
+                toastWarning('Please enter both name and config');
                 return;
             }
 
@@ -2795,7 +3276,7 @@
                 saveToStorage();
                 updateModelsList();
             } catch (e) {
-                alert('Invalid JSON: ' + e.message);
+                toastError(e.message, 'Invalid JSON');
             }
         }
 
@@ -2963,9 +3444,9 @@
 
                     await saveToStorage();
                     await init();
-                    alert('Data imported!');
+                    toastSuccess('All data imported!');
                 } catch (e) {
-                    alert('Import error: ' + e.message);
+                    toastError(e.message, 'Import Failed');
                 }
             };
             reader.readAsText(file);
@@ -2983,11 +3464,304 @@
         }
 
         // ==================== UTILITIES ====================
+
+        // Fast HTML escaping using regex instead of DOM manipulation
+        const htmlEscapeMap = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+
         function escapeHtml(text) {
             if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+            return String(text).replace(/[&<>"']/g, char => htmlEscapeMap[char]);
+        }
+
+        // ==================== TOAST NOTIFICATIONS ====================
+        function showToast(message, type = 'info', title = null, duration = null) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const icons = {
+                success: '✓',
+                error: '✕',
+                warning: '⚠',
+                info: 'ℹ'
+            };
+
+            const toastDuration = duration || (type === 'error' ? CONFIG.TOAST_ERROR_DURATION : CONFIG.TOAST_DURATION);
+
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <span class="toast-icon">${icons[type] || icons.info}</span>
+                <div class="toast-content">
+                    ${title ? `<div class="toast-title">${escapeHtml(title)}</div>` : ''}
+                    <div class="toast-message">${escapeHtml(message)}</div>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+
+            container.appendChild(toast);
+
+            // Auto-remove after duration
+            setTimeout(() => {
+                toast.classList.add('toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, toastDuration);
+
+            return toast;
+        }
+
+        // Convenience functions
+        function toastSuccess(message, title = null) {
+            return showToast(message, 'success', title);
+        }
+
+        function toastError(message, title = 'Error') {
+            return showToast(message, 'error', title);
+        }
+
+        function toastWarning(message, title = null) {
+            return showToast(message, 'warning', title);
+        }
+
+        function toastInfo(message, title = null) {
+            return showToast(message, 'info', title);
+        }
+
+        // ==================== EDIT MODAL ====================
+        let editModalCallback = null;
+        let editModalContext = null;
+
+        function openEditModal(title, content, callback, context = null) {
+            document.getElementById('edit-modal-title').textContent = title;
+            document.getElementById('edit-modal-content').value = content || '';
+            editModalCallback = callback;
+            editModalContext = context;
+            document.getElementById('edit-modal').classList.add('open');
+            document.getElementById('edit-modal-content').focus();
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.remove('open');
+            editModalCallback = null;
+            editModalContext = null;
+        }
+
+        function saveEditModal() {
+            const content = document.getElementById('edit-modal-content').value;
+            if (editModalCallback) {
+                editModalCallback(content, editModalContext);
+            }
+            closeEditModal();
+        }
+
+        // Handle Escape key to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('edit-modal');
+                if (modal.classList.contains('open')) {
+                    closeEditModal();
+                }
+            }
+        });
+
+        // ==================== UNDO/REDO SYSTEM ====================
+        const MAX_UNDO_HISTORY = 50;
+
+        function saveDagSnapshot() {
+            // Clone current DAG state
+            const snapshot = JSON.parse(JSON.stringify(dag));
+
+            // Truncate future history if we're not at the end
+            if (state.dagHistoryIndex < state.dagHistory.length - 1) {
+                state.dagHistory = state.dagHistory.slice(0, state.dagHistoryIndex + 1);
+            }
+
+            // Add new snapshot
+            state.dagHistory.push(snapshot);
+
+            // Limit history size
+            if (state.dagHistory.length > MAX_UNDO_HISTORY) {
+                state.dagHistory.shift();
+            }
+
+            state.dagHistoryIndex = state.dagHistory.length - 1;
+        }
+
+        function undoDag() {
+            if (state.dagHistoryIndex <= 0) {
+                toastInfo('Nothing to undo');
+                return;
+            }
+
+            state.dagHistoryIndex--;
+            const snapshot = state.dagHistory[state.dagHistoryIndex];
+            Object.assign(dag, JSON.parse(JSON.stringify(snapshot)));
+            saveToStorage();
+            renderDag();
+            toastInfo('Undo');
+        }
+
+        function redoDag() {
+            if (state.dagHistoryIndex >= state.dagHistory.length - 1) {
+                toastInfo('Nothing to redo');
+                return;
+            }
+
+            state.dagHistoryIndex++;
+            const snapshot = state.dagHistory[state.dagHistoryIndex];
+            Object.assign(dag, JSON.parse(JSON.stringify(snapshot)));
+            saveToStorage();
+            renderDag();
+            toastInfo('Redo');
+        }
+
+        // ==================== COPY/PASTE ====================
+        function copySelectedNode() {
+            if (!selectedNodeId) {
+                toastWarning('No node selected');
+                return;
+            }
+
+            const node = dag.nodes[selectedNodeId];
+            if (!node) return;
+
+            state.clipboard = {
+                type: 'node',
+                data: JSON.parse(JSON.stringify(node))
+            };
+            toastSuccess('Node copied');
+        }
+
+        function pasteNode() {
+            if (!state.clipboard || state.clipboard.type !== 'node') {
+                toastWarning('Nothing to paste');
+                return;
+            }
+
+            saveDagSnapshot();
+
+            const original = state.clipboard.data;
+            const newId = generateId();
+            const container = document.getElementById('dag-canvas-container');
+            const rect = container.getBoundingClientRect();
+
+            dag.nodes[newId] = {
+                ...JSON.parse(JSON.stringify(original)),
+                id: newId,
+                position: {
+                    x: Math.min(original.position.x + 30, rect.width - CONFIG.NODE_WIDTH),
+                    y: Math.min(original.position.y + 30, rect.height - CONFIG.NODE_HEIGHT)
+                }
+            };
+
+            selectedNodeId = newId;
+            saveToStorage();
+            renderDag();
+            toastSuccess('Node pasted');
+        }
+
+        // ==================== KEYBOARD SHORTCUTS ====================
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                // Only handle shortcuts when not in input fields
+                const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+
+                // Ctrl/Cmd + Z = Undo
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey && !isInput) {
+                    e.preventDefault();
+                    undoDag();
+                }
+
+                // Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y = Redo
+                if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey)) && !isInput) {
+                    e.preventDefault();
+                    redoDag();
+                }
+
+                // Ctrl/Cmd + C = Copy (when in DAG tab)
+                if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !isInput) {
+                    const dagTab = document.getElementById('dag-tab');
+                    if (dagTab.classList.contains('active') && selectedNodeId) {
+                        e.preventDefault();
+                        copySelectedNode();
+                    }
+                }
+
+                // Ctrl/Cmd + V = Paste (when in DAG tab)
+                if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !isInput) {
+                    const dagTab = document.getElementById('dag-tab');
+                    if (dagTab.classList.contains('active') && state.clipboard) {
+                        e.preventDefault();
+                        pasteNode();
+                    }
+                }
+
+                // Delete or Backspace = Delete selected node (when in DAG tab)
+                if ((e.key === 'Delete' || e.key === 'Backspace') && !isInput) {
+                    const dagTab = document.getElementById('dag-tab');
+                    if (dagTab.classList.contains('active') && selectedNodeId) {
+                        e.preventDefault();
+                        deleteSelectedNode();
+                    }
+                }
+
+                // Escape = Deselect node or close panels
+                if (e.key === 'Escape' && !isInput) {
+                    if (selectedNodeId) {
+                        selectedNodeId = null;
+                        closeDagConfigPanel();
+                        renderDag();
+                    }
+                }
+            });
+        }
+
+        // ==================== DAG EXPORT/IMPORT ====================
+        function exportDag() {
+            downloadJSON({
+                dag: dag,
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            }, `dag-${Date.now()}.json`);
+            toastSuccess('DAG exported');
+        }
+
+        function importDag(event) {
+            const file = event?.target?.files?.[0];
+            if (!file) {
+                // Trigger file input
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.onchange = importDag;
+                input.click();
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.dag) {
+                        throw new Error('Invalid DAG file');
+                    }
+
+                    saveDagSnapshot();
+                    Object.assign(dag, data.dag);
+                    saveToStorage();
+                    renderDag();
+                    toastSuccess('DAG imported');
+                } catch (err) {
+                    toastError(err.message, 'Import Failed');
+                }
+            };
+            reader.readAsText(file);
+            if (event?.target) event.target.value = '';
         }
 
         // Background audio for iOS
